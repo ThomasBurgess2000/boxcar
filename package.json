@@ -1,0 +1,17 @@
+{
+  "name": "babylonian",
+  "module": "index.ts",
+  "type": "module",
+  "devDependencies": {
+    "bun-types": "^1.0.14"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "@babylonjs/core": "^6.31.0",
+    "eslint": "^8.54.0",
+    "prettier": "^3.1.0",
+    "tick-knock": "^4.2.0"
+  }
+}
