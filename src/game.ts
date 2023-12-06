@@ -1,7 +1,7 @@
 /// <reference lib="dom" />
 /// <reference lib="dom.iterable" />
 
-import { ArcRotateCamera, Engine, HemisphericLight, MeshBuilder, Scene, Vector3 } from '@babylonjs/core';
+import { ArcRotateCamera, Engine, HemisphericLight, MeshBuilder, Quaternion, Scene, Vector3 } from '@babylonjs/core';
 import { Inspector } from '@babylonjs/inspector';
 import { EcsEngine } from './ecsEngine';
 import { Section, TrackComponent } from './components/track.component';
@@ -36,7 +36,9 @@ export function startGame() {
   });
   // createDemoTrack();
   // createStraightTrack();
-  createTrackWithGradual90Turn();
+  // createTrackWithGradual90Turn();
+  // createTrackWithGradualTurn();
+  createTrackWithTurn('right', 90);
 }
 
 function addSystems() {
@@ -345,35 +347,69 @@ function createStraightTrack() {
   ecsEngine.addEntity(entity);
 }
 
-function createTrackWithGradual90Turn() {
+function createTrackWithTurn(turnDirection: 'left' | 'right', turnAngle: number) {
   let currentPoint;
   const points = [];
   const n = 100;
   const railLength = 0.5;
 
+  const section = new Section(0);
   for (let i = 0; i < n; i++) {
     points.push(new Vector3(i * railLength, 2, 0));
   }
-  currentPoint = points[points.length - 1];
 
-  // Gradual 90 degree turn that follows a curve
-  const r = 30;
-  const curveStartX = currentPoint.x + railLength;
-  const curveStartZ = currentPoint.z - r;
-  for (let i = 0; i < 105; i++) {
-    points.push(
-      new Vector3(curveStartX + r * Math.sin((i * Math.PI) / (2 * n)), currentPoint.y, curveStartZ + r * Math.cos((i * Math.PI) / (2 * n))),
-    );
-  }
+  const section2 = new Section(points.length);
+  const newPoints = addCurveSection(points, turnDirection, turnAngle);
+  points.push(...newPoints);
 
-  const section: Section = new Section(0);
-  const section2: Section = new Section(100);
+  // TODO: Make this work
+  const section3 = new Section(points.length);
+  const newPoints2 = addCurveSection(points, turnDirection, turnAngle);
+  points.push(...newPoints2);
 
-  const sections = [section, section2];
+  const sections = [section, section2, section3];
 
   const ecsEngine = EcsEngine.getInstance();
   const entity = new Entity();
   const trackComponent = new TrackComponent(points, sections);
   entity.add(trackComponent);
   ecsEngine.addEntity(entity);
+}
+
+function addCurveSection(points: Vector3[], turnDirection: 'left' | 'right', turnAngle: number): Vector3[] {
+  const currentPoint = points[points.length - 1];
+
+  // Calculate the direction of the last segment
+  let secondLastPoint = points[points.length - 2];
+  let lastDirection = currentPoint.subtract(secondLastPoint).normalize();
+  console.log(lastDirection);
+  // Calculate the perpendicular direction
+  const upVector = new Vector3(0, 1, 0);
+  let perpendicularDirection = Vector3.Cross(lastDirection, upVector).normalize();
+  console.log(perpendicularDirection);
+  if (turnDirection === 'right') {
+    perpendicularDirection = perpendicularDirection.negate();
+  }
+
+  const turnAngleRadians = (turnAngle * Math.PI) / 180;
+
+  // ratio of number of points to the turn angle is 105:90
+  // TODO: This migh need to be a multiple of 5
+  const ratio = 105 / 90;
+
+  const r = 30;
+  const curvePoints = Math.round(ratio * turnAngle);
+
+  let newPoints: Vector3[] = [];
+
+  for (let i = 0; i < curvePoints; i++) {
+    // Angle in radians for each point in the curve
+    let angle = turnAngleRadians * (i / curvePoints);
+    let dx = r * Math.sin(angle);
+    let dz = r * (1 - Math.cos(angle));
+    let newPoint = currentPoint.add(new Vector3(dx * lastDirection.x, 0, dz * perpendicularDirection.z));
+    newPoints.push(newPoint);
+  }
+
+  return newPoints;
 }

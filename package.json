@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@babylonjs/core": "^6.31.0",
+    "@babylonjs/inspector": "^6.32.1",
     "eslint": "^8.54.0",
     "prettier": "^3.1.0",
     "tick-knock": "^4.2.0"
