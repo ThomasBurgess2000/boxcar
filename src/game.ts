@@ -34,11 +34,10 @@ export function startGame() {
   scene.onBeforeRenderObservable.add(() => {
     ecsEngine.update(engine.getDeltaTime() / 1000);
   });
-  // createDemoTrack();
-  // createStraightTrack();
-  // createTrackWithGradual90Turn();
-  // createTrackWithGradualTurn();
-  createTrackWithTurn('right', 90);
+
+  // TODO: Figure out why there's a line from the last point to the first point
+  const trackSections = ['straight', 'left', 'right', 'left', 'straight'];
+  createTrack(trackSections);
 }
 
 function addSystems() {
@@ -348,26 +347,28 @@ function createStraightTrack() {
 }
 
 function createTrackWithTurn(turnDirection: 'left' | 'right', turnAngle: number) {
-  let currentPoint;
   const points = [];
   const n = 100;
   const railLength = 0.5;
 
-  const section = new Section(0);
+  const section = new Section(points.length);
   for (let i = 0; i < n; i++) {
     points.push(new Vector3(i * railLength, 2, 0));
   }
 
   const section2 = new Section(points.length);
-  const newPoints = addCurveSection(points, turnDirection, turnAngle);
+  const newPoints = addCurveSection(points, turnDirection, 90);
   points.push(...newPoints);
 
-  // TODO: Make this work
   const section3 = new Section(points.length);
-  const newPoints2 = addCurveSection(points, turnDirection, turnAngle);
+  const newPoints2 = addCurveSection(points, turnDirection, 90);
   points.push(...newPoints2);
 
-  const sections = [section, section2, section3];
+  const section4 = new Section(points.length);
+  const newPoints3 = addCurveSection(points, turnDirection, 90);
+  points.push(...newPoints3);
+
+  const sections = [section, section2, section3, section4];
 
   const ecsEngine = EcsEngine.getInstance();
   const entity = new Entity();
@@ -378,18 +379,11 @@ function createTrackWithTurn(turnDirection: 'left' | 'right', turnAngle: number)
 
 function addCurveSection(points: Vector3[], turnDirection: 'left' | 'right', turnAngle: number): Vector3[] {
   const currentPoint = points[points.length - 1];
-
   // Calculate the direction of the last segment
   let secondLastPoint = points[points.length - 2];
   let lastDirection = currentPoint.subtract(secondLastPoint).normalize();
-  console.log(lastDirection);
-  // Calculate the perpendicular direction
-  const upVector = new Vector3(0, 1, 0);
-  let perpendicularDirection = Vector3.Cross(lastDirection, upVector).normalize();
-  console.log(perpendicularDirection);
-  if (turnDirection === 'right') {
-    perpendicularDirection = perpendicularDirection.negate();
-  }
+
+  const initialAngle = Math.atan2(lastDirection.z, lastDirection.x);
 
   const turnAngleRadians = (turnAngle * Math.PI) / 180;
 
@@ -398,18 +392,77 @@ function addCurveSection(points: Vector3[], turnDirection: 'left' | 'right', tur
   const ratio = 105 / 90;
 
   const r = 30;
-  const curvePoints = Math.round(ratio * turnAngle);
+  const curvePoints = Math.round(ratio * Math.abs(turnAngle));
 
   let newPoints: Vector3[] = [];
 
   for (let i = 0; i < curvePoints; i++) {
     // Angle in radians for each point in the curve
     let angle = turnAngleRadians * (i / curvePoints);
+    console.log(i, turnAngle * (i / curvePoints));
     let dx = r * Math.sin(angle);
     let dz = r * (1 - Math.cos(angle));
-    let newPoint = currentPoint.add(new Vector3(dx * lastDirection.x, 0, dz * perpendicularDirection.z));
+
+    // flip the direction if turning right
+    if (turnDirection === 'right') {
+      dz = -dz;
+    }
+
+    // Rotate the offsets by the initial angle
+    let rotatedDx = dx * Math.cos(initialAngle) - dz * Math.sin(initialAngle);
+    let rotatedDz = dx * Math.sin(initialAngle) + dz * Math.cos(initialAngle);
+
+    let newPoint = currentPoint.add(new Vector3(rotatedDx, 0, rotatedDz));
     newPoints.push(newPoint);
   }
 
   return newPoints;
+}
+
+function addStraightSection(points: Vector3[], n: number): Vector3[] {
+  // First section
+  if (points.length === 0) {
+    for (let i = 0; i < n; i++) {
+      points.push(new Vector3(i * 0.5, 0, 0));
+    }
+  } else {
+    const currentPoint = points[points.length - 1];
+    // base the direction of the new section on the direction of the last segment
+    let secondLastPoint = points[points.length - 2];
+    let lastDirection = currentPoint.subtract(secondLastPoint).normalize();
+
+    // Create the new section
+    for (let i = 0; i < n; i++) {
+      points.push(currentPoint.add(lastDirection.scale((i + 1) * 0.5)));
+    }
+  }
+  return points;
+}
+
+function createTrack(trackSections: string[]) {
+  const points = [];
+  const n = 100;
+  const railLength = 0.5;
+  let sections = [];
+
+  for (let trackSection of trackSections) {
+    const section = new Section(points.length);
+    if (trackSection === 'straight') {
+      const newPoints = addStraightSection(points, n);
+      points.push(...newPoints);
+    } else if (trackSection === 'left') {
+      const newPoints = addCurveSection(points, 'left', 90);
+      points.push(...newPoints);
+    } else if (trackSection === 'right') {
+      const newPoints = addCurveSection(points, 'right', 90);
+      points.push(...newPoints);
+    }
+    sections.push(section);
+  }
+  console.log(points);
+  const ecsEngine = EcsEngine.getInstance();
+  const entity = new Entity();
+  const trackComponent = new TrackComponent(points, sections);
+  entity.add(trackComponent);
+  ecsEngine.addEntity(entity);
 }

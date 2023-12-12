@@ -220,9 +220,11 @@ export class TrackInitializationSystem extends IterativeSystem {
     const closedLoop = points[0].equals(points[points.length - 1]);
 
     if (closedLoop) {
+      console.log('here');
       plusPoints.push(plusPoints[0]);
       negPoints.push(negPoints[0]);
     }
+    console.log(negPoints);
 
     const plusTube = MeshBuilder.CreateTube('tube', { path: plusPoints, radius: 0.1, tessellation: 4 });
     const negTube = MeshBuilder.CreateTube('tube', { path: negPoints, radius: 0.1, tessellation: 4 });
