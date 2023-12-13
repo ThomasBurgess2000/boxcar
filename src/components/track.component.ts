@@ -9,20 +9,6 @@ export class TrackComponent {
   ) {}
 }
 
-// export interface Section {
-//   start: number;
-//   options: {
-//     lean?: number;
-//     leanTwists?: number;
-//     leanWaves?: number;
-//     leanWaveAngle?: number;
-//     turn?: number;
-//     turnTwists?: number;
-//     turnWaves?: number;
-//     turnWaveAngle?: number;
-//   };
-// }
-
 export class Section {
   start: number;
   options: {
