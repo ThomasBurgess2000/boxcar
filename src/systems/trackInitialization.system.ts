@@ -42,17 +42,10 @@ export class TrackInitializationSystem extends IterativeSystem {
       nbSections = sections.length;
     }
 
-    // assumes need to close loop
-    // if (0 < sections[nbSections - 1].start && sections[nbSections - 1].start < points.length - 1) {
-    //   const endSection: Section = { start: 0, options: sections[0].options };
-    //   sections.push(endSection);
-    // }
-
     let directions: Vector3[] = [];
     let rotations: Matrix[] = [];
     let carriageRotations: Matrix[] = [];
     let passengerRotations: Matrix[] = [];
-    console.log(sections);
     for (let i = 0; i < sections.length; i++) {
       ({ directions, rotations, carriageRotations, passengerRotations } = this.createSection(
         points,
@@ -200,9 +193,7 @@ export class TrackInitializationSystem extends IterativeSystem {
     const sleeper = MeshBuilder.CreateBox('', { width: 0.5, height: 0.25, depth: 2.5 });
     sleeper.material = new StandardMaterial('');
     sleeper.position.y = -0.5;
-
     for (let i = 0; i < points.length; i += 5) {
-      console.log(i, track.carriageRotations[i], normal, binormal);
       Vector3.TransformNormalToRef(Axis.Y, track.carriageRotations[i], normal);
       Vector3.TransformNormalToRef(Axis.Z, track.carriageRotations[i], binormal);
       plusPoints.push(points[i].add(binormal.scale(offset)).add(normal.scale(height)));
@@ -225,7 +216,7 @@ export class TrackInitializationSystem extends IterativeSystem {
       plusPoints.push(plusPoints[0]);
       negPoints.push(negPoints[0]);
     }
-    
+
     const plusTube = MeshBuilder.CreateTube('tube', { path: plusPoints, radius: 0.1, tessellation: 4 });
     const negTube = MeshBuilder.CreateTube('tube', { path: negPoints, radius: 0.1, tessellation: 4 });
 
