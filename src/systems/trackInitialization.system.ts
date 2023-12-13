@@ -193,7 +193,6 @@ export class TrackInitializationSystem extends IterativeSystem {
     const sleeper = MeshBuilder.CreateBox('', { width: 0.5, height: 0.25, depth: 2.5 });
     sleeper.material = new StandardMaterial('');
     sleeper.position.y = -0.5;
-    console.log(points.length);
     for (let i = 0; i < points.length; i += 5) {
       Vector3.TransformNormalToRef(Axis.Y, track.carriageRotations[i], normal);
       Vector3.TransformNormalToRef(Axis.Z, track.carriageRotations[i], binormal);

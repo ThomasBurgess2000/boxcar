@@ -127,7 +127,6 @@ function createTrack(trackSections: string[]) {
     }
     sections.push(section);
   }
-  console.log(points);
   const ecsEngine = EcsEngine.getInstance();
   const entity = new Entity();
   const trackComponent = new TrackComponent(points, sections);
