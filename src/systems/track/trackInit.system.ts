@@ -1,8 +1,11 @@
 import { Entity, IterativeSystem } from 'tick-knock';
-import { Section, TrackComponent } from '../components/track.component';
+import { Section, TrackComponent } from '../../components/track.component';
 import { Axis, Matrix, MeshBuilder, Quaternion, StandardMaterial, Vector3 } from '@babylonjs/core';
+import { InitializationStatus } from '../../utils/types';
+import { RegisterSystem } from '../../startup/systemRegistration';
 
-export class TrackInitializationSystem extends IterativeSystem {
+@RegisterSystem()
+export class TrackInitSystem extends IterativeSystem {
   public constructor() {
     super((entity: Entity) => entity.hasComponent(TrackComponent));
   }
@@ -10,15 +13,29 @@ export class TrackInitializationSystem extends IterativeSystem {
   protected updateEntity(entity: Entity): void {
     const trackComponent = entity.get(TrackComponent)!;
     const { points, sections } = trackComponent;
-    if (trackComponent.initialized || trackComponent.initializing) return;
-    trackComponent.initializing = true;
+    if (
+      trackComponent.initializationStatus === InitializationStatus.Initializing ||
+      trackComponent.initializationStatus === InitializationStatus.Initialized
+    ) {
+      return;
+    }
+    trackComponent.initializationStatus = InitializationStatus.Initializing;
     const track = this.createTrack(points, sections);
     this.createMeshes(track, points);
-
-    trackComponent.initialized = true;
+    const rotations = track.rotations.map((rotation) => Quaternion.FromRotationMatrix(rotation));
+    trackComponent.rotations = rotations;
+    trackComponent.initializationStatus = InitializationStatus.Initialized;
   }
 
-  private createTrack(points: Vector3[], sections: Section[]) {
+  private createTrack(
+    points: Vector3[],
+    sections: Section[],
+  ): { directions: Vector3[]; rotations: Matrix[]; carriageRotations: Matrix[]; passengerRotations: Matrix[] } {
+    let directions: Vector3[] = [];
+    let rotations: Matrix[] = [];
+    let carriageRotations: Matrix[] = [];
+    let passengerRotations: Matrix[] = [];
+
     let nbSections = sections.length;
 
     const looped = sections[nbSections - 1].start === 0;
@@ -26,13 +43,13 @@ export class TrackInitializationSystem extends IterativeSystem {
     for (let i = 1; i < nbSections - loopedNum; i++) {
       if (sections[i - 1].start > sections[i].start) {
         console.error('sections not in order');
-        return;
+        return { directions, rotations, carriageRotations, passengerRotations };
       }
     }
 
     if (0 < sections[nbSections - 1].start && sections[nbSections - 2].start > sections[nbSections - 1].start) {
       console.error('last section not in order');
-      return;
+      return { directions, rotations, carriageRotations, passengerRotations };
     }
 
     let section = sections[0];
@@ -42,10 +59,6 @@ export class TrackInitializationSystem extends IterativeSystem {
       nbSections = sections.length;
     }
 
-    let directions: Vector3[] = [];
-    let rotations: Matrix[] = [];
-    let carriageRotations: Matrix[] = [];
-    let passengerRotations: Matrix[] = [];
     for (let i = 0; i < sections.length; i++) {
       ({ directions, rotations, carriageRotations, passengerRotations } = this.createSection(
         points,
@@ -177,7 +190,7 @@ export class TrackInitializationSystem extends IterativeSystem {
     return { directions, rotations, carriageRotations, passengerRotations };
   }
 
-  private createMeshes(track: ReturnType<TrackInitializationSystem['createTrack']>, points: Vector3[]) {
+  private createMeshes(track: ReturnType<TrackInitSystem['createTrack']>, points: Vector3[]) {
     if (!track) {
       console.error('no track!');
       return;
@@ -190,7 +203,7 @@ export class TrackInitializationSystem extends IterativeSystem {
     const plusPoints = [];
     const negPoints = [];
 
-    const sleeper = MeshBuilder.CreateBox('', { width: 0.5, height: 0.25, depth: 2.5 });
+    const sleeper = MeshBuilder.CreateBox('sleeper', { width: 0.5, height: 0.25, depth: 2.5 });
     sleeper.material = new StandardMaterial('');
     sleeper.position.y = -0.5;
     for (let i = 0; i < points.length; i += 5) {
@@ -199,7 +212,7 @@ export class TrackInitializationSystem extends IterativeSystem {
       plusPoints.push(points[i].add(binormal.scale(offset)).add(normal.scale(height)));
       negPoints.push(points[i].subtract(binormal.scale(offset)).add(normal.scale(height)));
 
-      const nsleeper = sleeper.createInstance('');
+      const nsleeper = sleeper.createInstance('sleeper' + i);
 
       nsleeper.position.x = points[i].x;
       nsleeper.position.y = points[i].y;

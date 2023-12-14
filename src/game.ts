@@ -1,14 +1,15 @@
 /// <reference lib="dom" />
 /// <reference lib="dom.iterable" />
 
-import { ArcRotateCamera, Engine, HemisphericLight, MeshBuilder, Quaternion, Scene, Vector3 } from '@babylonjs/core';
+import { ArcRotateCamera, Engine, HemisphericLight, MeshBuilder, Quaternion, Scene, UniversalCamera, Vector3 } from '@babylonjs/core';
 import { Inspector } from '@babylonjs/inspector';
 import { EcsEngine } from './ecsEngine';
 import { Section, TrackComponent } from './components/track.component';
 import { Entity } from 'tick-knock';
-import { TrackInitializationSystem } from './systems/trackInitialization.system';
+import { initSystems } from './startup/systemRegistration';
+import { LocomotiveComponent } from './components/locomotive.component';
 
-export function startGame() {
+export async function startGame() {
   // Create canvas and engine
   const canvas = document.getElementById('renderCanvas') as HTMLCanvasElement;
   const engine = new Engine(canvas, true);
@@ -21,7 +22,7 @@ export function startGame() {
 
   // Inspector.Show(scene, {});
 
-  const camera = new ArcRotateCamera('camera', -Math.PI / 2, Math.PI / 2.5, 15, Vector3.Zero(), scene);
+  const camera = new UniversalCamera('camera', new Vector3(0, 50, 25), scene);
   camera.attachControl(canvas, true);
   const light = new HemisphericLight('light', new Vector3(0, 1, 0), scene);
 
@@ -30,19 +31,76 @@ export function startGame() {
   });
 
   const ecsEngine = EcsEngine.getInstance();
-  addSystems();
+  await initSystems();
   scene.onBeforeRenderObservable.add(() => {
     ecsEngine.update(engine.getDeltaTime() / 1000);
   });
 
-  // TODO: Figure out why there's a line from the last point to the first point
-  const trackSections = ['straight', 'left', 'right', 'left', 'straight'];
-  createTrack(trackSections);
-}
-
-function addSystems() {
-  const ecsEngine = EcsEngine.getInstance();
-  ecsEngine.addSystem(new TrackInitializationSystem());
+  // const trackSections = ['straight', 'left', 'right', 'left', 'straight'];
+  const trackSections = [
+    'straight',
+    'left',
+    'left',
+    'straight',
+    'right',
+    'right',
+    'straight',
+    'left',
+    'left',
+    'straight',
+    'right',
+    'right',
+    'straight',
+    'left',
+    'left',
+    'straight',
+    'right',
+    'right',
+    'straight',
+    'left',
+    'left',
+    'straight',
+    'right',
+    'right',
+    'straight',
+    'left',
+    'left',
+    'straight',
+    'right',
+    'right',
+    'straight',
+    'left',
+    'left',
+    'straight',
+    'right',
+    'right',
+    'straight',
+    'left',
+    'left',
+    'straight',
+    'right',
+    'right',
+    'straight',
+    'left',
+    'left',
+    'straight',
+    'right',
+    'right',
+    'straight',
+    'left',
+    'left',
+    'straight',
+    'right',
+    'right',
+    'straight',
+    'left',
+    'left',
+    'straight',
+    'right',
+    'right',
+  ];
+  const trackComponent = createTrack(trackSections);
+  createLocomotive(trackComponent);
 }
 
 function addCurveSection(points: Vector3[], turnDirection: 'left' | 'right', turnAngle: number): Vector3[] {
@@ -56,7 +114,6 @@ function addCurveSection(points: Vector3[], turnDirection: 'left' | 'right', tur
   const turnAngleRadians = (turnAngle * Math.PI) / 180;
 
   // ratio of number of points to the turn angle is ~105:90
-  // TODO: This might need to be a multiple of 5
   const ratio = 105 / 90;
 
   const r = 30;
@@ -64,7 +121,7 @@ function addCurveSection(points: Vector3[], turnDirection: 'left' | 'right', tur
 
   let newPoints: Vector3[] = [];
 
-  for (let i = 0; i < curvePoints; i++) {
+  for (let i = 1; i < curvePoints; i++) {
     // Angle in radians for each point in the curve
     let angle = turnAngleRadians * (i / curvePoints);
     let dx = r * Math.sin(angle);
@@ -107,7 +164,7 @@ function addStraightSection(points: Vector3[], n: number): Vector3[] {
   return newPoints;
 }
 
-function createTrack(trackSections: string[]) {
+function createTrack(trackSections: string[]): TrackComponent {
   const points = [];
   const n = 100;
   const railLength = 0.5;
@@ -130,6 +187,16 @@ function createTrack(trackSections: string[]) {
   const ecsEngine = EcsEngine.getInstance();
   const entity = new Entity();
   const trackComponent = new TrackComponent(points, sections);
+  entity.add(trackComponent);
+  ecsEngine.addEntity(entity);
+  return trackComponent;
+}
+
+function createLocomotive(trackComponent: TrackComponent) {
+  const ecsEngine = EcsEngine.getInstance();
+  const entity = new Entity();
+  const locomotiveComponent = new LocomotiveComponent();
+  entity.add(locomotiveComponent);
   entity.add(trackComponent);
   ecsEngine.addEntity(entity);
 }
