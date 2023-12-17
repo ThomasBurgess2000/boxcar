@@ -1,13 +1,14 @@
 /// <reference lib="dom" />
 /// <reference lib="dom.iterable" />
 
-import { ArcRotateCamera, Engine, HemisphericLight, MeshBuilder, Quaternion, Scene, UniversalCamera, Vector3 } from '@babylonjs/core';
+import { Engine, HemisphericLight, Scene, SceneLoader, UniversalCamera, Vector3 } from '@babylonjs/core';
 import { Inspector } from '@babylonjs/inspector';
 import { EcsEngine } from './ecsEngine';
 import { Section, TrackComponent } from './components/track.component';
 import { Entity } from 'tick-knock';
 import { initSystems } from './startup/systemRegistration';
 import { LocomotiveComponent } from './components/locomotive.component';
+import '@babylonjs/loaders/glTF';
 
 export async function startGame() {
   // Create canvas and engine
@@ -17,7 +18,6 @@ export async function startGame() {
     engine.resize();
   });
 
-  // Create a basic scene
   const scene = new Scene(engine);
 
   // Inspector.Show(scene, {});
@@ -36,71 +36,10 @@ export async function startGame() {
     ecsEngine.update(engine.getDeltaTime() / 1000);
   });
 
-  // const trackSections = ['straight', 'left', 'right', 'left', 'straight'];
-  const trackSections = [
-    'straight',
-    'left',
-    'left',
-    'straight',
-    'right',
-    'right',
-    'straight',
-    'left',
-    'left',
-    'straight',
-    'right',
-    'right',
-    'straight',
-    'left',
-    'left',
-    'straight',
-    'right',
-    'right',
-    'straight',
-    'left',
-    'left',
-    'straight',
-    'right',
-    'right',
-    'straight',
-    'left',
-    'left',
-    'straight',
-    'right',
-    'right',
-    'straight',
-    'left',
-    'left',
-    'straight',
-    'right',
-    'right',
-    'straight',
-    'left',
-    'left',
-    'straight',
-    'right',
-    'right',
-    'straight',
-    'left',
-    'left',
-    'straight',
-    'right',
-    'right',
-    'straight',
-    'left',
-    'left',
-    'straight',
-    'right',
-    'right',
-    'straight',
-    'left',
-    'left',
-    'straight',
-    'right',
-    'right',
-  ];
+  const trackSections = ['straight', 'left', 'left'];
   const trackComponent = createTrack(trackSections);
   createLocomotive(trackComponent);
+  makeTree();
 }
 
 function addCurveSection(points: Vector3[], turnDirection: 'left' | 'right', turnAngle: number): Vector3[] {
@@ -199,4 +138,11 @@ function createLocomotive(trackComponent: TrackComponent) {
   entity.add(locomotiveComponent);
   entity.add(trackComponent);
   ecsEngine.addEntity(entity);
+}
+
+function makeTree() {
+  SceneLoader.ImportMeshAsync(['tree'], './assets/models/', 'tree.glb', undefined, undefined, '.glb').then((result) => {
+    const tree = result.meshes[0];
+    tree.position = new Vector3(0, 0, 0);
+  });
 }
