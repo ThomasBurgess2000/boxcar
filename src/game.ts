@@ -141,7 +141,7 @@ function createLocomotive(trackComponent: TrackComponent) {
 }
 
 function makeTree() {
-  SceneLoader.ImportMeshAsync(['tree'], './assets/models/', 'tree.glb', undefined, undefined, '.glb').then((result) => {
+  SceneLoader.ImportMeshAsync(['tree'], './assets/models/', 'sphere.glb', undefined, undefined, '.glb').then((result) => {
     const tree = result.meshes[0];
     tree.position = new Vector3(0, 0, 0);
   });
