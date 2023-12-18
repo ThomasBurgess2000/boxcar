@@ -3,6 +3,7 @@
 
 import { initSystems } from './startup/systemRegistration';
 import {
+  ArcRotateCamera,
   Color3,
   Engine,
   HemisphericLight,
@@ -25,15 +26,14 @@ import '@babylonjs/loaders/glTF';
 
 export async function startGame() {
   ShaderStore.ShadersStore['customVertexShader'] = `attribute vec3 position;
-attribute vec3 normal;
 attribute vec2 uv;
 
-uniform mat4 worldViewProjection;
+uniform mat4 world;
+uniform mat4 view;
 uniform float u_effectBlend;
-uniform float u_inflate;
-uniform float u_scale;
-uniform float u_windSpeed;
-uniform float u_windTime;
+uniform float u_remap;
+uniform float u_normalize;
+uniform mat4 projection;
 
 varying vec2 vUV;
 
@@ -46,61 +46,25 @@ float remap(float v, float inMin, float inMax, float outMin, float outMax) {
   return mix(outMin, outMax, t);
 }
 
-mat4 rotateZ(float radians) {
-  float c = cos(radians);
-  float s = sin(radians);
-
-	return mat4(
-    c, -s, 0, 0,
-    s, c, 0, 0,
-    0, 0, 1, 0,
-    0, 0, 0, 1
-  );
-}
-
-vec4 applyWind(vec4 v) {
-  float boundedYNormal = remap(normal.y, -1.0, 1.0, 0.0, 1.0);
-  float posXZ = position.x + position.z;
-  float power = u_windSpeed / 5.0 * -0.5;
-
-  float topFacing = remap(sin(u_windTime + posXZ), -1.0, 1.0, 0.0, power);
-  float bottomFacing = remap(cos(u_windTime + posXZ), -1.0, 1.0, 0.0, 0.05);
-  float radians = mix(bottomFacing, topFacing, boundedYNormal);
-
-  return rotateZ(radians) * v;
-}
-
-vec2 calcInitialOffsetFromUVs() {
-  vec2 offset = vec2(
-    remap(uv.x, 0.0, 1.0, -1.0, 1.0),
-    remap(uv.y, 0.0, 1.0, -1.0, 1.0)
-  );
-
-  // Invert the vertex offset so it's positioned towards the camera.
-  offset *= vec2(-1.0, 1.0);
-  offset = normalize(offset) * u_scale;
-
-  return offset;
-}
-
-vec3 inflateOffset(vec3 offset) {
-  return offset + normal.xyz * u_inflate;
-}
-
 void main() {
-  vec2 vertexOffset = calcInitialOffsetFromUVs();
+  vec2 vertexOffset = vec2(
+    remap(uv.x, 0.0, 1.0, -u_remap, 1.0),
+    remap(uv.y, 0.0, 1.0, -u_remap, 1.0)
+  );
 
-  vec3 inflatedVertexOffset = inflateOffset(vec3(vertexOffset, 0.0));
+  vertexOffset *= vec2(-1.0, 1.0);
 
-  vec4 worldViewPosition = worldViewProjection * vec4(position, 1.0);
+  if (u_remap == 1.0) {
+    vertexOffset = mix(vertexOffset, normalize(vertexOffset), u_normalize);
+  }
 
-  worldViewPosition += vec4(mix(vec3(0.0), inflatedVertexOffset, u_effectBlend), 0.0);
+  vec4 worldViewPosition = world * view * vec4(position, 1.0);
 
-  worldViewPosition = applyWind(worldViewPosition);
+  worldViewPosition += vec4(mix(vec3(0.0), vec3(vertexOffset, 1.0), u_effectBlend), 0.0);
   
   vUV = uv;
 
-  gl_Position = worldViewPosition;
+  gl_Position = projection * worldViewPosition;
 }
 `;
 
@@ -118,9 +82,9 @@ void main(void) {
 
     gl_FragColor = vec4(u_color * texColor.rgb, luminance);
 
-    if (luminance < 0.75) {
-      discard;
-    }
+    // if (luminance < 0.75) {
+    //   discard;
+    // }
 }`;
 
   // Create canvas and engine
@@ -135,8 +99,7 @@ void main(void) {
 
   Inspector.Show(scene, {});
 
-  const camera = new UniversalCamera('camera', new Vector3(-10, 1.91, -21.74), scene);
-  camera.setTarget(new Vector3(10, 2, 16.75));
+  const camera = new ArcRotateCamera('camera', 0, 0, 0, new Vector3(0, 0, 0), scene);
   camera.attachControl(canvas, true);
   const light = new HemisphericLight('light', new Vector3(0, 1, 0), scene);
 
@@ -266,8 +229,8 @@ function makeTree(scene: Scene, engine: Engine) {
       scene,
       { vertex: 'custom', fragment: 'custom' },
       {
-        attributes: ['position', 'normal', 'uv'],
-        uniforms: ['world', 'worldView', 'worldViewProjection', 'view', 'projection'],
+        attributes: ['position', 'uv'],
+        uniforms: ['world', 'view', 'projection'],
         uniformBuffers: undefined,
         shaderLanguage: ShaderLanguage.GLSL,
       },
@@ -285,11 +248,10 @@ function makeTree(scene: Scene, engine: Engine) {
     shaderMaterial.setColor3('u_color', foliageColor);
 
     // Set initial uniform values
+    shaderMaterial.setFloat('u_remap', 1.0);
+    shaderMaterial.setFloat('u_normalize', 1.0);
     shaderMaterial.setFloat('u_effectBlend', 1.0);
-    shaderMaterial.setFloat('u_inflate', 0.0);
-    shaderMaterial.setFloat('u_scale', 1.0);
-    shaderMaterial.setFloat('u_windSpeed', 1.0);
-    shaderMaterial.setFloat('u_windTime', 0.0);
+    shaderMaterial.setMatrix('view', scene.getViewMatrix());
 
     // find the child mesh with the name 'foliage'
     const foliage = tree.getChildMeshes().find((mesh) => mesh.name === 'foliage');
@@ -298,10 +260,9 @@ function makeTree(scene: Scene, engine: Engine) {
     }
     foliage.material = shaderMaterial;
 
+    shaderMaterial.setMatrix('world', foliage.getWorldMatrix());
+
     // Update uniforms in the render loop
-    // scene.registerBeforeRender(() => {
-    //   const delta = engine.getDeltaTime() / 1000;
-    //   shaderMaterial.setFloat('u_windTime', shaderMaterial.getFloat('u_windTime') + shaderMaterial.getFloat('u_windSpeed') * delta);
-    // });
+    scene.registerBeforeRender(() => {});
   });
 }
