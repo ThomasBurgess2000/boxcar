@@ -5,6 +5,7 @@ import '../systems/index';
 
 export function RegisterSystem<T extends new () => System>() {
   return function (constructor: T) {
+    console.log('Registering system', constructor.name);
     SystemRegistry.push(constructor);
   };
 }
@@ -16,6 +17,7 @@ function getRegisteredSystems() {
 export async function initSystems() {
   const ecsEngine = EcsEngine.getInstance();
   const systemConstructors = getRegisteredSystems();
+  console.log('systemConstructors', systemConstructors);
   for (const SystemConstructor of systemConstructors) {
     const system = new SystemConstructor();
     ecsEngine.addSystem(system);
