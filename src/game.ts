@@ -5,9 +5,11 @@ import { initSystems } from './startup/systemRegistration';
 import {
   ArcRotateCamera,
   Color3,
+  Color4,
   Engine,
   HemisphericLight,
   Material,
+  Mesh,
   Scene,
   SceneLoader,
   ShaderLanguage,
@@ -28,7 +30,7 @@ export async function startGame() {
   ShaderStore.ShadersStore['customVertexShader'] = `attribute vec3 position;
 attribute vec2 uv;
 
-uniform mat4 world;
+#include<instancesDeclaration>
 uniform mat4 view;
 uniform float u_effectBlend;
 uniform float u_remap;
@@ -47,6 +49,7 @@ float remap(float v, float inMin, float inMax, float outMin, float outMax) {
 }
 
 void main() {
+  #include<instancesVertex>
   vec2 vertexOffset = vec2(
     remap(uv.x, 0.0, 1.0, -u_remap, 1.0),
     remap(uv.y, 0.0, 1.0, -u_remap, 1.0)
@@ -58,7 +61,7 @@ void main() {
     vertexOffset = mix(vertexOffset, normalize(vertexOffset), u_normalize);
   }
 
-  vec4 worldViewPosition = world * view * vec4(position, 1.0);
+  vec4 worldViewPosition = view * finalWorld * vec4(position, 1.0);
 
   worldViewPosition += vec4(mix(vec3(0.0), vec3(vertexOffset, 1.0), u_effectBlend), 0.0);
   
@@ -82,9 +85,9 @@ void main(void) {
 
     gl_FragColor = vec4(u_color * texColor.rgb, luminance);
 
-    // if (luminance < 0.75) {
-    //   discard;
-    // }
+    if (luminance < 0.75) {
+      discard;
+    }
 }`;
 
   // Create canvas and engine
@@ -96,7 +99,7 @@ void main(void) {
 
   // Create a basic scene
   const scene = new Scene(engine);
-
+  scene.clearColor = Color4.FromColor3(Color3.White());
   Inspector.Show(scene, {});
 
   const camera = new ArcRotateCamera('camera', 0, 0, 0, new Vector3(0, 0, 0), scene);
@@ -117,7 +120,7 @@ void main(void) {
   const trackSections = ['straight', 'left'];
   const trackComponent = createTrack(trackSections);
   createLocomotive(trackComponent);
-  makeTree(scene, engine);
+  makeTree(scene);
 }
 
 function addCurveSection(points: Vector3[], turnDirection: 'left' | 'right', turnAngle: number): Vector3[] {
@@ -218,10 +221,10 @@ function createLocomotive(trackComponent: TrackComponent) {
   ecsEngine.addEntity(entity);
 }
 
-function makeTree(scene: Scene, engine: Engine) {
-  SceneLoader.ImportMeshAsync(null, './assets/models/', 'tree.glb').then((result) => {
-    console.log(result);
+async function makeTree(scene: Scene) {
+  await SceneLoader.ImportMeshAsync(null, './assets/models/', 'tree.glb').then((result) => {
     const tree = result.meshes[0];
+    tree.name = 'tree';
     tree.position = new Vector3(0, 0, 0);
 
     const shaderMaterial = new ShaderMaterial(
@@ -244,14 +247,20 @@ function makeTree(scene: Scene, engine: Engine) {
     alphaMap.hasAlpha = true;
     shaderMaterial.alphaMode = Material.MATERIAL_ALPHABLEND;
     shaderMaterial.setTexture('textureSampler', alphaMap);
-    const foliageColor = new Color3(0.25, 0.45, 0.13);
+    const foliageColor = new Color3(63 / 255, 109 / 255, 33 / 255);
     shaderMaterial.setColor3('u_color', foliageColor);
 
     // Set initial uniform values
     shaderMaterial.setFloat('u_remap', 1.0);
     shaderMaterial.setFloat('u_normalize', 1.0);
     shaderMaterial.setFloat('u_effectBlend', 1.0);
-    shaderMaterial.setMatrix('view', scene.getViewMatrix());
+
+    // find the child mesh with the name 'trunk'
+    const trunk = tree.getChildMeshes().find((mesh) => mesh.name === 'trunk');
+    if (!trunk || !trunk.material) {
+      return;
+    }
+    trunk.material.disableDepthWrite = true;
 
     // find the child mesh with the name 'foliage'
     const foliage = tree.getChildMeshes().find((mesh) => mesh.name === 'foliage');
@@ -259,10 +268,29 @@ function makeTree(scene: Scene, engine: Engine) {
       return;
     }
     foliage.material = shaderMaterial;
-
     shaderMaterial.setMatrix('world', foliage.getWorldMatrix());
-
-    // Update uniforms in the render loop
-    scene.registerBeforeRender(() => {});
   });
+
+  // make instance of tree
+  createTreeInstance(scene);
+}
+
+function createTreeInstance(scene: Scene) {
+  const tree = scene.getMeshByName('tree');
+  if (!tree) {
+    return;
+  }
+
+  const treeInstance = new Mesh('treeInstance', scene);
+
+  const trunk = tree.getChildMeshes().find((mesh) => mesh.name === 'trunk') as Mesh;
+  const trunkInstance = trunk.createInstance('trunkInstance');
+
+  const foliage = tree.getChildMeshes().find((mesh) => mesh.name === 'foliage') as Mesh;
+  const foliageInstance = foliage.createInstance('foliageInstance');
+
+  trunkInstance.parent = treeInstance;
+  foliageInstance.parent = treeInstance;
+
+  treeInstance.position = new Vector3(0, 0, 5);
 }
