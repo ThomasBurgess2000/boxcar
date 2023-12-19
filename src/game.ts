@@ -27,68 +27,65 @@ import { LocomotiveComponent } from './components/locomotive.component';
 import '@babylonjs/loaders/glTF';
 
 export async function startGame() {
-  ShaderStore.ShadersStore['customVertexShader'] = `attribute vec3 position;
-attribute vec2 uv;
+  ShaderStore.ShadersStore['customVertexShader'] = `
+    attribute vec3 position;
+    attribute vec2 uv;
 
-#include<instancesDeclaration>
-uniform mat4 view;
-uniform float u_effectBlend;
-uniform float u_remap;
-uniform float u_normalize;
-uniform mat4 projection;
+    #include<instancesDeclaration>
+    uniform mat4 view;
+    uniform float u_effectBlend;
+    uniform float u_remap;
+    uniform float u_normalize;
+    uniform mat4 projection;
 
-varying vec2 vUV;
+    varying vec2 vUV;
 
-float inverseLerp(float v, float minValue, float maxValue) {
-  return (v - minValue) / (maxValue - minValue);
-}
-
-float remap(float v, float inMin, float inMax, float outMin, float outMax) {
-  float t = inverseLerp(v, inMin, inMax);
-  return mix(outMin, outMax, t);
-}
-
-void main() {
-  #include<instancesVertex>
-  vec2 vertexOffset = vec2(
-    remap(uv.x, 0.0, 1.0, -u_remap, 1.0),
-    remap(uv.y, 0.0, 1.0, -u_remap, 1.0)
-  );
-
-  vertexOffset *= vec2(-1.0, 1.0);
-
-  if (u_remap == 1.0) {
-    vertexOffset = mix(vertexOffset, normalize(vertexOffset), u_normalize);
-  }
-
-  vec4 worldViewPosition = view * finalWorld * vec4(position, 1.0);
-
-  worldViewPosition += vec4(mix(vec3(0.0), vec3(vertexOffset, 1.0), u_effectBlend), 0.0);
-  
-  vUV = uv;
-
-  gl_Position = projection * worldViewPosition;
-}
-`;
-
-  ShaderStore.ShadersStore['customFragmentShader'] = `precision highp float;
-
-varying vec2 vUV;
-
-uniform sampler2D textureSampler;
-uniform vec3 u_color;
-
-void main(void) {
-    vec4 texColor = texture2D(textureSampler, vUV);
-
-    float luminance = dot(texColor.rgb, vec3(0.299, 0.587, 0.114));
-
-    gl_FragColor = vec4(u_color * texColor.rgb, luminance);
-
-    if (luminance < 0.75) {
-      discard;
+    float inverseLerp(float v, float minValue, float maxValue) {
+      return (v - minValue) / (maxValue - minValue);
     }
-}`;
+
+    float remap(float v, float inMin, float inMax, float outMin, float outMax) {
+      float t = inverseLerp(v, inMin, inMax);
+      return mix(outMin, outMax, t);
+    }
+
+    void main() {
+      #include<instancesVertex>
+      vec2 vertexOffset = vec2(
+        remap(uv.x, 0.0, 1.0, -u_remap, 1.0),
+        remap(uv.y, 0.0, 1.0, -u_remap, 1.0)
+      );
+
+      vertexOffset *= vec2(-1.0, 1.0);
+
+      if (u_remap == 1.0) {
+        vertexOffset = mix(vertexOffset, normalize(vertexOffset), u_normalize);
+      }
+
+      vec4 worldViewPosition = view * finalWorld * vec4(position, 1.0);
+
+      worldViewPosition += vec4(mix(vec3(0.0), vec3(vertexOffset, 1.0), u_effectBlend), 0.0);
+      
+      vUV = uv;
+
+      gl_Position = projection * worldViewPosition;
+    }
+  `;
+
+  ShaderStore.ShadersStore['customFragmentShader'] = `
+    precision highp float;
+    varying vec2 vUV;
+    uniform sampler2D textureSampler;
+    uniform vec3 u_color;
+    void main(void) {
+      vec4 texColor = texture2D(textureSampler, vUV);
+      float luminance = dot(texColor.rgb, vec3(0.299, 0.587, 0.114));
+      gl_FragColor = vec4(u_color * texColor.rgb, luminance);
+      if (luminance < 0.75) {
+        discard;
+      }
+    }
+  `;
 
   // Create canvas and engine
   const canvas = document.getElementById('renderCanvas') as HTMLCanvasElement;
@@ -99,6 +96,7 @@ void main(void) {
 
   // Create a basic scene
   const scene = new Scene(engine);
+  scene.useRightHandedSystem = true;
   scene.clearColor = Color4.FromColor3(Color3.White());
   Inspector.Show(scene, {});
 
@@ -247,6 +245,7 @@ async function makeTree(scene: Scene) {
     alphaMap.hasAlpha = true;
     shaderMaterial.alphaMode = Material.MATERIAL_ALPHABLEND;
     shaderMaterial.setTexture('textureSampler', alphaMap);
+    shaderMaterial.backFaceCulling = false;
     const foliageColor = new Color3(63 / 255, 109 / 255, 33 / 255);
     shaderMaterial.setColor3('u_color', foliageColor);
 
@@ -289,8 +288,8 @@ function createTreeInstance(scene: Scene) {
   const foliage = tree.getChildMeshes().find((mesh) => mesh.name === 'foliage') as Mesh;
   const foliageInstance = foliage.createInstance('foliageInstance');
 
-  trunkInstance.parent = treeInstance;
   foliageInstance.parent = treeInstance;
+  trunkInstance.parent = treeInstance;
 
   treeInstance.position = new Vector3(0, 0, 5);
 }
