@@ -1,8 +1,9 @@
-import { Vector3 } from '@babylonjs/core';
+import { Quaternion, Vector3 } from '@babylonjs/core';
+import { InitializationStatus } from '../utils/types';
 
 export class TrackComponent {
-  public initialized = false;
-  public initializing = false;
+  public initializationStatus: InitializationStatus = InitializationStatus.NotInitialized;
+  public rotations: Quaternion[] = [];
   constructor(
     public points: Vector3[],
     public sections: Section[],
