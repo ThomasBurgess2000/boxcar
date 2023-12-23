@@ -1,8 +1,9 @@
 import { Entity, IterativeSystem } from 'tick-knock';
 import { LocomotiveComponent } from '../../components/locomotive.component';
 import { InitializationStatus } from '../../utils/types';
-import { Color3, MeshBuilder, StandardMaterial } from '@babylonjs/core';
+import { ArcRotateCamera, Color3, MeshBuilder, StandardMaterial } from '@babylonjs/core';
 import { RegisterSystem } from '../../startup/systemRegistration';
+import { scene } from '../../game';
 
 @RegisterSystem()
 export class LocomotiveInitSystem extends IterativeSystem {
@@ -20,6 +21,7 @@ export class LocomotiveInitSystem extends IterativeSystem {
     }
     locomotiveComponent.initializationStatus = InitializationStatus.Initializing;
     const mesh = this.createMesh();
+    (scene.activeCamera as ArcRotateCamera).parent = mesh;
     locomotiveComponent.mesh = mesh;
     locomotiveComponent.initializationStatus = InitializationStatus.Initialized;
   }
