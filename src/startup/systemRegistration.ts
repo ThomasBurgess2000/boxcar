@@ -1,5 +1,5 @@
 import { System } from 'tick-knock';
-import { EcsEngine } from '../ecsEngine';
+import { EcsEngine } from '../singletons/ecsEngine';
 import { SystemRegistry } from './systemRegistry';
 import '../systems/index';
 
