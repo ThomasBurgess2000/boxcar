@@ -22,7 +22,6 @@ export async function startGame() {
     engine.resize();
   });
 
-  // Create a basic scene
   scene = new Scene(engine);
   scene.useRightHandedSystem = true;
   scene.clearColor = Color4.FromColor3(Color3.Black());
@@ -180,3 +179,4 @@ function createLocomotive(trackComponent: TrackComponent) {
   entity.add(trackComponent);
   ecsEngine.addEntity(entity);
 }
+
