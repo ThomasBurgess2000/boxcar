@@ -10,7 +10,8 @@ import { Entity } from 'tick-knock';
 import { LocomotiveComponent } from './components/locomotive.component';
 import '@babylonjs/loaders/glTF';
 import { TreeComponent } from './components/tree.component';
-import { PositionComponent } from './components/position.component';
+import { PositionComponent } from './components/babylonPrimitives/position.component';
+import { AddButtonComponent } from './components/trackBuilder/addButton.component';
 
 export let scene: Scene;
 
@@ -42,44 +43,35 @@ export async function startGame() {
     ecsEngine.update(engine.getDeltaTime() / 1000);
   });
 
-  const trackSections = ['straight', 'straight', 'straight', 'left', 'straight'];
+  const trackSections = [
+    'straight',
+    'straight',
+    'straight',
+    'straight',
+    'straight',
+    'straight',
+    'straight',
+    'straight',
+    'straight',
+    'straight',
+    'straight',
+    'straight',
+    'straight',
+    'straight',
+    'straight',
+    'straight',
+    'straight',
+    'straight',
+    'straight',
+    'straight',
+    'straight',
+    'straight',
+    'straight',
+  ];
   const trackComponent = createTrack(trackSections);
   createLocomotive(trackComponent);
-
-  // Make a bunch of trees
-  for (let i = 0; i < 15; i++) {
-    for (let j = 0; j < 3; j++) {
-      const treeEntity = new Entity();
-      const treeComponent = new TreeComponent();
-      treeEntity.add(treeComponent);
-      const randomDistanceVariation = Math.random() * 10;
-      const distanceFromTrack = 5;
-      const positionComponent = new PositionComponent({
-        x: i * 10 + randomDistanceVariation,
-        y: 0,
-        z: j * 10 + randomDistanceVariation + distanceFromTrack,
-      });
-      treeEntity.add(positionComponent);
-      ecsEngine.addEntity(treeEntity);
-    }
-  }
-
-  for (let i = 0; i < 15; i++) {
-    for (let j = 0; j < 3; j++) {
-      const treeEntity = new Entity();
-      const treeComponent = new TreeComponent();
-      treeEntity.add(treeComponent);
-      const randomDistanceVariation = Math.random() * 10;
-      const distanceFromTrack = 15;
-      const positionComponent = new PositionComponent({
-        x: i * 10 + randomDistanceVariation,
-        y: 0,
-        z: j * -10 + randomDistanceVariation - distanceFromTrack,
-      });
-      treeEntity.add(positionComponent);
-      ecsEngine.addEntity(treeEntity);
-    }
-  }
+  makeTrees();
+  createAddButton();
 }
 
 function addCurveSection(points: Vector3[], turnDirection: 'left' | 'right', turnAngle: number): Vector3[] {
@@ -180,3 +172,52 @@ function createLocomotive(trackComponent: TrackComponent) {
   ecsEngine.addEntity(entity);
 }
 
+function makeTrees() {
+  const ecsEngine = EcsEngine.getInstance();
+  const treeRowCount = 10;
+
+  // Make a bunch of trees
+  for (let i = 0; i < treeRowCount; i++) {
+    for (let j = 0; j < treeRowCount; j++) {
+      const treeEntity = new Entity();
+      const treeComponent = new TreeComponent();
+      treeEntity.add(treeComponent);
+      const randomDistanceVariation = Math.random() * 10;
+      const distanceFromTrack = 5;
+      const positionComponent = new PositionComponent({
+        x: i * 10 + randomDistanceVariation,
+        y: 0,
+        z: j * 10 + randomDistanceVariation + distanceFromTrack,
+        unmoving: true,
+      });
+      treeEntity.add(positionComponent);
+      ecsEngine.addEntity(treeEntity);
+    }
+  }
+
+  for (let i = 0; i < treeRowCount; i++) {
+    for (let j = 0; j < treeRowCount; j++) {
+      const treeEntity = new Entity();
+      const treeComponent = new TreeComponent();
+      treeEntity.add(treeComponent);
+      const randomDistanceVariation = Math.random() * 10;
+      const distanceFromTrack = 15;
+      const positionComponent = new PositionComponent({
+        x: i * 10 + randomDistanceVariation,
+        y: 0,
+        z: j * -10 + randomDistanceVariation - distanceFromTrack,
+        unmoving: true,
+      });
+      treeEntity.add(positionComponent);
+      ecsEngine.addEntity(treeEntity);
+    }
+  }
+}
+
+function createAddButton() {
+  const ecsEngine = EcsEngine.getInstance();
+  const entity = new Entity();
+  const addButtonComponent = new AddButtonComponent();
+  entity.add(addButtonComponent);
+  ecsEngine.addEntity(entity);
+}

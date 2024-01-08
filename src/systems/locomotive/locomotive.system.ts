@@ -5,6 +5,8 @@ import { InitializationStatus } from '../../utils/types';
 import { TrackComponent } from '../../components/track.component';
 import { Vector3 } from '@babylonjs/core';
 
+const SPEED = 70;
+
 @RegisterSystem()
 export class LocomotiveSystem extends IterativeSystem {
   public constructor() {
@@ -21,10 +23,10 @@ export class LocomotiveSystem extends IterativeSystem {
     ) {
       return;
     }
-    this.updatePositionOnTrack(locomotiveComponent, trackComponent);
+    this.updatePositionOnTrack(locomotiveComponent, trackComponent, dt);
   }
 
-  private updatePositionOnTrack(locomotiveComponent: LocomotiveComponent, trackComponent: TrackComponent) {
+  private updatePositionOnTrack(locomotiveComponent: LocomotiveComponent, trackComponent: TrackComponent, dt: number) {
     const positionOnTrack = locomotiveComponent.positionOnTrack;
     const trackLength = trackComponent.points.length;
     if (positionOnTrack >= trackLength) {
@@ -34,6 +36,7 @@ export class LocomotiveSystem extends IterativeSystem {
     const position = trackComponent.points[locomotiveComponent.positionOnTrack];
     locomotiveMesh.position = new Vector3(position.x, position.y + 1.5, position.z);
     locomotiveMesh.rotationQuaternion = trackComponent.rotations[locomotiveComponent.positionOnTrack];
-    locomotiveComponent.positionOnTrack++;
+    const positionOnTrackRounded = Math.round(SPEED * dt);
+    locomotiveComponent.positionOnTrack += positionOnTrackRounded;
   }
 }
