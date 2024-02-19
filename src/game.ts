@@ -7,11 +7,13 @@ import { Inspector } from '@babylonjs/inspector';
 import { EcsEngine } from './singletons/ecsEngine';
 import { Section, TrackComponent } from './components/track.component';
 import { Entity } from 'tick-knock';
-import { LocomotiveComponent } from './components/locomotive.component';
+import { LocomotiveComponent } from './components/locomotive/locomotive.component';
 import '@babylonjs/loaders/glTF';
 import { TreeComponent } from './components/tree.component';
 import { PositionComponent } from './components/babylonPrimitives/position.component';
 import { AddButtonComponent } from './components/trackBuilder/addButton.component';
+import { LocomotiveInputComponent } from './components/locomotive/locomotiveInput.component';
+import { KeysComponent } from './components/keys.component';
 
 export let scene: Scene;
 
@@ -26,7 +28,7 @@ export async function startGame() {
   scene = new Scene(engine);
   scene.useRightHandedSystem = true;
   scene.clearColor = Color4.FromColor3(Color3.Black());
-  Inspector.Show(scene, {});
+  // Inspector.Show(scene, {});
 
   const camera = new ArcRotateCamera('camera', 9.44, 1.575, 0.1, new Vector3(0, 0, 0), scene);
   camera.attachControl(canvas, true);
@@ -43,35 +45,11 @@ export async function startGame() {
     ecsEngine.update(engine.getDeltaTime() / 1000);
   });
 
-  const trackSections = [
-    'straight',
-    'straight',
-    'straight',
-    'straight',
-    'straight',
-    'straight',
-    'straight',
-    'straight',
-    'straight',
-    'straight',
-    'straight',
-    'straight',
-    'straight',
-    'straight',
-    'straight',
-    'straight',
-    'straight',
-    'straight',
-    'straight',
-    'straight',
-    'straight',
-    'straight',
-    'straight',
-  ];
+  const trackSections = ['s', 's', 's', 's', 's', 'l', 's', 'r', 's', 's'];
   const trackComponent = createTrack(trackSections);
   createLocomotive(trackComponent);
   makeTrees();
-  createAddButton();
+  // createAddButton();
 }
 
 function addCurveSection(points: Vector3[], turnDirection: 'left' | 'right', turnAngle: number): Vector3[] {
@@ -143,15 +121,17 @@ function createTrack(trackSections: string[]): TrackComponent {
 
   for (let trackSection of trackSections) {
     const section = new Section(points.length);
-    if (trackSection === 'straight') {
+    if (trackSection === 'straight' || trackSection === 'w' || trackSection === 's') {
       const newPoints = addStraightSection(points, n);
       points.push(...newPoints);
-    } else if (trackSection === 'left') {
+    } else if (trackSection === 'left' || trackSection === 'a' || trackSection === 'l') {
       const newPoints = addCurveSection(points, 'left', 90);
       points.push(...newPoints);
-    } else if (trackSection === 'right') {
+    } else if (trackSection === 'right' || trackSection === 'd' || trackSection === 'r') {
       const newPoints = addCurveSection(points, 'right', 90);
       points.push(...newPoints);
+    } else {
+      console.error('Invalid track section');
     }
     sections.push(section);
   }
@@ -168,6 +148,10 @@ function createLocomotive(trackComponent: TrackComponent) {
   const entity = new Entity();
   const locomotiveComponent = new LocomotiveComponent();
   entity.add(locomotiveComponent);
+  const locomotiveInputComponent = new LocomotiveInputComponent();
+  entity.add(locomotiveInputComponent);
+  const keysComponent = new KeysComponent();
+  entity.add(keysComponent);
   entity.add(trackComponent);
   ecsEngine.addEntity(entity);
 }
