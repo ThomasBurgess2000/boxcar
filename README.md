@@ -1,6 +1,6 @@
-# babylonian
+# Boxcar
 
-Template for a Bablyon.js TypeScript project that uses an ECS framework and Bun.
+Drive a train!
 
 ## Build
 
