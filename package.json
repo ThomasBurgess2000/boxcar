@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@babylonjs/core": "^6.31.0",
+    "@babylonjs/gui": "^6.35.0",
     "@babylonjs/inspector": "^6.31.0",
     "@babylonjs/loaders": "^6.31.0",
     "eslint": "^8.54.0",

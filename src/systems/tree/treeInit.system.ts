@@ -12,10 +12,12 @@ import {
   ShaderMaterial,
   ShaderStore,
   Texture,
+  TransformNode,
   Vector3,
 } from '@babylonjs/core';
 import { scene } from '../../game';
-import { MeshComponent } from '../../components/mesh.component';
+import { TransformNodeComponent } from '../../components/babylonPrimitives/transformNode.component';
+
 @RegisterSystem()
 export class TreeInitSystem extends IterativeSystem {
   public constructor() {
@@ -142,6 +144,7 @@ export class TreeInitSystem extends IterativeSystem {
 
   private async createMasterTree(): Promise<void> {
     await SceneLoader.ImportMeshAsync(null, './assets/models/', 'tree.glb').then((result) => {
+      console.log(result);
       const tree = result.meshes[0];
       tree.name = 'masterTree';
       tree.position = new Vector3(0, 0, 0);
@@ -210,7 +213,7 @@ export class TreeInitSystem extends IterativeSystem {
 
     treeComponent.initializationStatus = InitializationStatus.Initializing;
 
-    const treeInstance = new Mesh('treeInstance', scene);
+    const treeInstance = new TransformNode('treeInstance');
 
     const trunk = tree.getChildMeshes().find((mesh) => mesh.name === 'trunk') as Mesh;
     const trunkInstance = trunk.createInstance('trunkInstance');
@@ -220,9 +223,14 @@ export class TreeInitSystem extends IterativeSystem {
 
     foliageInstance.parent = treeInstance;
     trunkInstance.parent = treeInstance;
+    treeInstance.freezeWorldMatrix();
+    foliageInstance.freezeWorldMatrix();
+    trunkInstance.freezeWorldMatrix();
+    foliageInstance.alwaysSelectAsActiveMesh = true;
+    trunkInstance.alwaysSelectAsActiveMesh = true;
     treeComponent.initializationStatus = InitializationStatus.Initialized;
 
-    const meshComponent = new MeshComponent(treeInstance);
-    entity.add(meshComponent);
+    const transformNodeComponent = new TransformNodeComponent(treeInstance);
+    entity.add(transformNodeComponent);
   }
 }

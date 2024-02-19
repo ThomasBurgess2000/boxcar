@@ -7,10 +7,13 @@ import { Inspector } from '@babylonjs/inspector';
 import { EcsEngine } from './singletons/ecsEngine';
 import { Section, TrackComponent } from './components/track.component';
 import { Entity } from 'tick-knock';
-import { LocomotiveComponent } from './components/locomotive.component';
+import { LocomotiveComponent } from './components/locomotive/locomotive.component';
 import '@babylonjs/loaders/glTF';
 import { TreeComponent } from './components/tree.component';
-import { PositionComponent } from './components/position.component';
+import { PositionComponent } from './components/babylonPrimitives/position.component';
+import { AddButtonComponent } from './components/trackBuilder/addButton.component';
+import { LocomotiveInputComponent } from './components/locomotive/locomotiveInput.component';
+import { KeysComponent } from './components/keys.component';
 
 export let scene: Scene;
 
@@ -25,7 +28,7 @@ export async function startGame() {
   scene = new Scene(engine);
   scene.useRightHandedSystem = true;
   scene.clearColor = Color4.FromColor3(Color3.Black());
-  Inspector.Show(scene, {});
+  // Inspector.Show(scene, {});
 
   const camera = new ArcRotateCamera('camera', 9.44, 1.575, 0.1, new Vector3(0, 0, 0), scene);
   camera.attachControl(canvas, true);
@@ -42,44 +45,11 @@ export async function startGame() {
     ecsEngine.update(engine.getDeltaTime() / 1000);
   });
 
-  const trackSections = ['straight', 'straight', 'straight', 'left', 'straight'];
+  const trackSections = ['s', 's', 's', 's', 's', 'l', 's', 'r', 's', 's'];
   const trackComponent = createTrack(trackSections);
   createLocomotive(trackComponent);
-
-  // Make a bunch of trees
-  for (let i = 0; i < 15; i++) {
-    for (let j = 0; j < 3; j++) {
-      const treeEntity = new Entity();
-      const treeComponent = new TreeComponent();
-      treeEntity.add(treeComponent);
-      const randomDistanceVariation = Math.random() * 10;
-      const distanceFromTrack = 5;
-      const positionComponent = new PositionComponent({
-        x: i * 10 + randomDistanceVariation,
-        y: 0,
-        z: j * 10 + randomDistanceVariation + distanceFromTrack,
-      });
-      treeEntity.add(positionComponent);
-      ecsEngine.addEntity(treeEntity);
-    }
-  }
-
-  for (let i = 0; i < 15; i++) {
-    for (let j = 0; j < 3; j++) {
-      const treeEntity = new Entity();
-      const treeComponent = new TreeComponent();
-      treeEntity.add(treeComponent);
-      const randomDistanceVariation = Math.random() * 10;
-      const distanceFromTrack = 15;
-      const positionComponent = new PositionComponent({
-        x: i * 10 + randomDistanceVariation,
-        y: 0,
-        z: j * -10 + randomDistanceVariation - distanceFromTrack,
-      });
-      treeEntity.add(positionComponent);
-      ecsEngine.addEntity(treeEntity);
-    }
-  }
+  makeTrees();
+  // createAddButton();
 }
 
 function addCurveSection(points: Vector3[], turnDirection: 'left' | 'right', turnAngle: number): Vector3[] {
@@ -151,15 +121,17 @@ function createTrack(trackSections: string[]): TrackComponent {
 
   for (let trackSection of trackSections) {
     const section = new Section(points.length);
-    if (trackSection === 'straight') {
+    if (trackSection === 'straight' || trackSection === 'w' || trackSection === 's') {
       const newPoints = addStraightSection(points, n);
       points.push(...newPoints);
-    } else if (trackSection === 'left') {
+    } else if (trackSection === 'left' || trackSection === 'a' || trackSection === 'l') {
       const newPoints = addCurveSection(points, 'left', 90);
       points.push(...newPoints);
-    } else if (trackSection === 'right') {
+    } else if (trackSection === 'right' || trackSection === 'd' || trackSection === 'r') {
       const newPoints = addCurveSection(points, 'right', 90);
       points.push(...newPoints);
+    } else {
+      console.error('Invalid track section');
     }
     sections.push(section);
   }
@@ -176,7 +148,60 @@ function createLocomotive(trackComponent: TrackComponent) {
   const entity = new Entity();
   const locomotiveComponent = new LocomotiveComponent();
   entity.add(locomotiveComponent);
+  const locomotiveInputComponent = new LocomotiveInputComponent();
+  entity.add(locomotiveInputComponent);
+  const keysComponent = new KeysComponent();
+  entity.add(keysComponent);
   entity.add(trackComponent);
   ecsEngine.addEntity(entity);
 }
 
+function makeTrees() {
+  const ecsEngine = EcsEngine.getInstance();
+  const treeRowCount = 10;
+
+  // Make a bunch of trees
+  for (let i = 0; i < treeRowCount; i++) {
+    for (let j = 0; j < treeRowCount; j++) {
+      const treeEntity = new Entity();
+      const treeComponent = new TreeComponent();
+      treeEntity.add(treeComponent);
+      const randomDistanceVariation = Math.random() * 10;
+      const distanceFromTrack = 5;
+      const positionComponent = new PositionComponent({
+        x: i * 10 + randomDistanceVariation,
+        y: 0,
+        z: j * 10 + randomDistanceVariation + distanceFromTrack,
+        unmoving: true,
+      });
+      treeEntity.add(positionComponent);
+      ecsEngine.addEntity(treeEntity);
+    }
+  }
+
+  for (let i = 0; i < treeRowCount; i++) {
+    for (let j = 0; j < treeRowCount; j++) {
+      const treeEntity = new Entity();
+      const treeComponent = new TreeComponent();
+      treeEntity.add(treeComponent);
+      const randomDistanceVariation = Math.random() * 10;
+      const distanceFromTrack = 15;
+      const positionComponent = new PositionComponent({
+        x: i * 10 + randomDistanceVariation,
+        y: 0,
+        z: j * -10 + randomDistanceVariation - distanceFromTrack,
+        unmoving: true,
+      });
+      treeEntity.add(positionComponent);
+      ecsEngine.addEntity(treeEntity);
+    }
+  }
+}
+
+function createAddButton() {
+  const ecsEngine = EcsEngine.getInstance();
+  const entity = new Entity();
+  const addButtonComponent = new AddButtonComponent();
+  entity.add(addButtonComponent);
+  ecsEngine.addEntity(entity);
+}
