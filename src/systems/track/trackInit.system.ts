@@ -12,75 +12,61 @@ export class TrackInitSystem extends IterativeSystem {
 
   protected updateEntity(entity: Entity): void {
     const trackComponent = entity.get(TrackComponent)!;
-    const { points, sections } = trackComponent;
-    if (
-      trackComponent.initializationStatus === InitializationStatus.Initializing ||
-      trackComponent.initializationStatus === InitializationStatus.Initialized
-    ) {
+    if (trackComponent.initializationStatus !== InitializationStatus.NotInitialized) {
       return;
     }
+
     trackComponent.initializationStatus = InitializationStatus.Initializing;
-    const track = this.createTrack(points, sections);
-    this.createMeshes(track, points);
-    const rotations = track.rotations.map((rotation) => Quaternion.FromRotationMatrix(rotation));
-    trackComponent.rotations = rotations;
+    const track = this.createTrack(trackComponent.points, trackComponent.sections);
+    this.createMeshes(track, trackComponent.points);
+
+    trackComponent.rotations = track.rotations.map(Quaternion.FromRotationMatrix);
     trackComponent.initializationStatus = InitializationStatus.Initialized;
   }
 
-  private createTrack(
-    points: Vector3[],
-    sections: Section[],
-  ): { directions: Vector3[]; rotations: Matrix[]; carriageRotations: Matrix[]; passengerRotations: Matrix[] } {
-    let directions: Vector3[] = [];
-    let rotations: Matrix[] = [];
-    let carriageRotations: Matrix[] = [];
-    let passengerRotations: Matrix[] = [];
+  private createTrack(points: Vector3[], sections: Section[]): TrackData {
+    const trackData: TrackData = {
+      directions: [],
+      rotations: [],
+      carriageRotations: [],
+      passengerRotations: [],
+    };
 
-    let nbSections = sections.length;
+    this.validateAndPrepareSections(sections, points);
 
-    const looped = sections[nbSections - 1].start === 0;
+    sections.forEach((section, i) => {
+      const nextSection = sections[i + 1] || sections[i];
+      this.createSection(points, section, nextSection, trackData);
+    });
+
+    return trackData;
+  }
+
+  private validateAndPrepareSections(sections: Section[], points: Vector3[]): void {
+    const looped = sections[sections.length - 1].start === 0;
     const loopedNum = looped ? 1 : 0;
-    for (let i = 1; i < nbSections - loopedNum; i++) {
+    for (let i = 1; i < sections.length - loopedNum; i++) {
       if (sections[i - 1].start > sections[i].start) {
-        console.error('sections not in order');
-        return { directions, rotations, carriageRotations, passengerRotations };
+        console.error('Sections not in order');
+        return;
       }
     }
 
-    if (0 < sections[nbSections - 1].start && sections[nbSections - 2].start > sections[nbSections - 1].start) {
-      console.error('last section not in order');
-      return { directions, rotations, carriageRotations, passengerRotations };
+    if (sections[sections.length - 1].start > 0 && sections[sections.length - 2].start > sections[sections.length - 1].start) {
+      console.error('Last section not in order');
+      return;
     }
 
-    let section = sections[0];
-    if (section.start > 0) {
-      const startSection: Section = new Section(0);
-      sections.unshift(startSection);
-      nbSections = sections.length;
+    if (sections[0].start > 0) {
+      sections.unshift(new Section(0));
     }
-
-    for (let i = 0; i < sections.length; i++) {
-      ({ directions, rotations, carriageRotations, passengerRotations } = this.createSection(
-        points,
-        sections[i],
-        sections[i + 1] || sections[i],
-        directions,
-        rotations,
-        carriageRotations,
-        passengerRotations,
-      ));
-    }
-    return { directions, rotations, carriageRotations, passengerRotations };
   }
 
   private createSection(
     points: Vector3[],
     startSection: Section,
     endSection: Section,
-    directions: Vector3[],
-    rotations: Matrix[],
-    carriageRotations: Matrix[],
-    passengerRotations: Matrix[],
+    trackData: TrackData,
   ): { directions: Vector3[]; rotations: Matrix[]; carriageRotations: Matrix[]; passengerRotations: Matrix[] } {
     const railsFrom = startSection.start;
     let railsTo = endSection.start;
@@ -178,16 +164,16 @@ export class TrackInitSystem extends IterativeSystem {
       Matrix.RotationAxisToRef(carriageNormal, theta, rotationMatrixTurn);
 
       Matrix.RotationAxisToRef(initialUprightDirection, theta, rotationMatrixPassenger);
-      passengerRotations.push(rotationMatrixPassenger.clone());
+      trackData.passengerRotations.push(rotationMatrixPassenger.clone());
 
       rotationMatrix.multiplyToRef(rotationMatrixLean, rotation);
-      carriageRotations.push(rotation.clone());
+      trackData.carriageRotations.push(rotation.clone());
       rotation.multiplyToRef(rotationMatrixTurn, rotation);
-      rotations.push(rotation.clone());
+      trackData.rotations.push(rotation.clone());
 
-      directions.push(railDirection.clone());
+      trackData.directions.push(railDirection.clone());
     }
-    return { directions, rotations, carriageRotations, passengerRotations };
+    return trackData;
   }
 
   private createMeshes(track: ReturnType<TrackInitSystem['createTrack']>, points: Vector3[]) {
@@ -203,10 +189,10 @@ export class TrackInitSystem extends IterativeSystem {
     const plusPoints = [];
     const negPoints = [];
 
-    const sleeper = MeshBuilder.CreateBox('sleeper', { width: 0.5, height: 0.25, depth: 2.5 });
+    const sleeper = MeshBuilder.CreateBox('sleeper', { width: 0.2286, height: 0.1778, depth: 2.6 });
     sleeper.material = new StandardMaterial('');
     sleeper.position.y = -0.5;
-    for (let i = 0; i < points.length; i += 5) {
+    for (let i = 0; i < points.length - 1; i += 1) {
       Vector3.TransformNormalToRef(Axis.Y, track.carriageRotations[i], normal);
       Vector3.TransformNormalToRef(Axis.Z, track.carriageRotations[i], binormal);
       plusPoints.push(points[i].add(binormal.scale(offset)).add(normal.scale(height)));
@@ -236,4 +222,11 @@ export class TrackInitSystem extends IterativeSystem {
     plusTube.freezeWorldMatrix();
     negTube.freezeWorldMatrix();
   }
+}
+
+interface TrackData {
+  directions: Vector3[];
+  rotations: Matrix[];
+  carriageRotations: Matrix[];
+  passengerRotations: Matrix[];
 }

@@ -1,7 +1,7 @@
 import { serve } from 'bun';
 
 serve({
-  port: 3000,
+  port: process.env.PORT || 3000,
   fetch(request) {
     if (request.url.endsWith('/') || request.url.endsWith('/index.html')) {
       return new Response(Bun.file('./index.html'));
@@ -13,4 +13,4 @@ serve({
   },
 });
 
-console.log(`Boxcar running at http://localhost:3000`);
+console.log(`Boxcar running at http://localhost:` + (process.env.PORT || 3000));

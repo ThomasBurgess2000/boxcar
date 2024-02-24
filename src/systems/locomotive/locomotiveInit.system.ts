@@ -20,14 +20,14 @@ export class LocomotiveInitSystem extends IterativeSystem {
       return;
     }
     locomotiveComponent.initializationStatus = InitializationStatus.Initializing;
-    const mesh = this.createMesh();
+    const mesh = this.createMesh(locomotiveComponent);
     (scene.activeCamera as ArcRotateCamera).parent = mesh;
     locomotiveComponent.mesh = mesh;
     locomotiveComponent.initializationStatus = InitializationStatus.Initialized;
   }
 
-  private createMesh() {
-    const mesh = MeshBuilder.CreateBox('locomotive', { width: 9, height: 3, depth: 3 });
+  private createMesh(loc: LocomotiveComponent) {
+    const mesh = MeshBuilder.CreateBox('locomotive', { width: loc.width, depth: loc.depth, height: loc.height});
     const material = new StandardMaterial('locomotive-material');
     material.diffuseColor = new Color3(0.5, 0.5, 0.5);
     mesh.material = material;

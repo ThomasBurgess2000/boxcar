@@ -6,8 +6,11 @@ export class LocomotiveComponent {
   public mesh: Nullable<Mesh> = null;
   public positionOnTrack: number = 0;
   public speed: number = 0;
-  public acceleration: number = 10;
-  public deceleration: number = 60;
-  public maxSpeed: number = 70;
+  public acceleration: number = 5;
+  public deceleration: number = 10;
+  public maxSpeed: number = 26.8224;
+  public width: number = 16.891
+  public depth: number = 3.2258;
+  public height: number = 3.048;
   constructor() {}
 }

@@ -14,7 +14,6 @@ export class LocomotiveInputSystem extends IterativeSystem {
     const locomotiveInputComponent = entity.get(LocomotiveInputComponent)!;
     const keysComponent = entity.get(KeysComponent)!;
     this.updateDirection(locomotiveInputComponent, keysComponent);
-    console.log('locomotiveInputComponent.direction', locomotiveInputComponent.direction);
   }
 
   private updateDirection(locomotiveInputComponent: LocomotiveInputComponent, keysComponent: KeysComponent) {
