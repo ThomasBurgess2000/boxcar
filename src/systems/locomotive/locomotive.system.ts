@@ -6,7 +6,7 @@ import { TrackComponent } from '../../components/track.component';
 import { Quaternion, Vector3 } from '@babylonjs/core';
 import { Direction, LocomotiveInputComponent } from '../../components/locomotive/locomotiveInput.component';
 
-const ELEVATION = 1.5;
+export const HEIGHT_ABOVE_TRACK = 1.5;
 
 @RegisterSystem()
 export class LocomotiveSystem extends IterativeSystem {
@@ -67,7 +67,7 @@ export class LocomotiveSystem extends IterativeSystem {
     const nextPosition = trackComponent.points[nextIndex];
     const interpolatedPosition = {
       x: currentPosition.x + (nextPosition.x - currentPosition.x) * interpolationFactor,
-      y: currentPosition.y + (nextPosition.y - currentPosition.y) * interpolationFactor + ELEVATION,
+      y: currentPosition.y + (nextPosition.y - currentPosition.y) * interpolationFactor + HEIGHT_ABOVE_TRACK,
       z: currentPosition.z + (nextPosition.z - currentPosition.z) * interpolationFactor,
     };
 

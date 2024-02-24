@@ -2,7 +2,7 @@
 /// <reference lib="dom.iterable" />
 
 import { initSystems } from './startup/systemRegistration';
-import { ArcRotateCamera, Color3, Color4, Engine, Mesh, PointLight, Scene, Vector3 } from '@babylonjs/core';
+import { ArcRotateCamera, Color3, Color4, Engine, HemisphericLight, Mesh, PointLight, Scene, Vector3 } from '@babylonjs/core';
 import { Inspector } from '@babylonjs/inspector';
 import { EcsEngine } from './singletons/ecsEngine';
 import { Section, TrackComponent } from './components/track.component';
@@ -14,6 +14,7 @@ import { PositionComponent } from './components/babylonPrimitives/position.compo
 import { AddButtonComponent } from './components/trackBuilder/addButton.component';
 import { LocomotiveInputComponent } from './components/locomotive/locomotiveInput.component';
 import { KeysComponent } from './components/keys.component';
+import { CarComponent } from './components/locomotive/car.component';
 
 export let scene: Scene;
 
@@ -32,8 +33,8 @@ export async function startGame() {
 
   const camera = new ArcRotateCamera('camera', 9.44, 1.575, 0.1, new Vector3(0, 0, 0), scene);
   camera.attachControl(canvas, true);
-  // const light = new HemisphericLight('light', new Vector3(0, 1, 0), scene);
-  const pointLight = new PointLight('pointLight', new Vector3(0, 20, 10), scene);
+  const light = new HemisphericLight('light', new Vector3(0, 1, 0), scene);
+  // const pointLight = new PointLight('pointLight', new Vector3(0, 20, 10), scene);
 
   engine.runRenderLoop(() => {
     scene.render();
@@ -116,7 +117,6 @@ function addStraightSection(points: Vector3[], n: number): Vector3[] {
 function createTrack(trackSections: string[]): TrackComponent {
   const points = [];
   const n = 100;
-  const railLength = 0.5;
   let sections = [];
 
   for (let trackSection of trackSections) {
@@ -148,6 +148,10 @@ function createLocomotive(trackComponent: TrackComponent) {
   const entity = new Entity();
   const locomotiveComponent = new LocomotiveComponent();
   entity.add(locomotiveComponent);
+  const car1 = new CarComponent(40);
+  entity.append(car1);
+  const car2 = new CarComponent(80);
+  entity.append(car2);
   const locomotiveInputComponent = new LocomotiveInputComponent();
   entity.add(locomotiveInputComponent);
   const keysComponent = new KeysComponent();
