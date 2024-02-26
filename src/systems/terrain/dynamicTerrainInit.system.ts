@@ -52,8 +52,6 @@ export class DynamicTerrainInitSystem extends IterativeSystem {
         maxHeight = height;
       }
     }
-    console.log('minHeight', minHeight);
-    console.log('maxHeight', maxHeight);
     const mapParams = {
       mapData: mapData,
       mapSubX: mapSubX,

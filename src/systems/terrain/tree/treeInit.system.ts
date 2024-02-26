@@ -29,7 +29,7 @@ export class TreeInitSystem extends IterativeSystem {
     const treeComponent = entity.get(TreeComponent)!;
     if (treeComponent.masterTreeInitializationStatus === InitializationStatus.NotInitialized) {
       treeComponent.masterTreeInitializationStatus = InitializationStatus.Initializing;
-      await this.createMasterTree(treeComponent);
+      this.createMasterTree(treeComponent);
     }
     if (
       treeComponent.initializationStatus === InitializationStatus.NotInitialized &&
@@ -48,7 +48,6 @@ export class TreeInitSystem extends IterativeSystem {
     ShaderStore.ShadersStore['treeFragmentShader'] = fragmentShader;
 
     await SceneLoader.ImportMeshAsync(null, './assets/models/', 'tree.glb').then((result) => {
-      console.log(result);
       const tree = result.meshes[0];
       tree.name = 'masterTree';
       tree.position = new Vector3(0, 0, 0);
