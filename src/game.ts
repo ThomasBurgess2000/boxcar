@@ -29,10 +29,17 @@ export async function startGame() {
 
   scene = new Scene(engine);
   scene.useRightHandedSystem = true;
-  scene.clearColor = Color4.FromColor3(Color3.Black());
+  scene.clearColor = Color4.FromColor3(Color3.White());
+  scene.fogMode = Scene.FOGMODE_LINEAR;
+  scene.fogColor = Color3.White();
+  scene.fogStart = 300;
+  scene.fogEnd = 500;
   Inspector.Show(scene, {});
 
   const camera = new ArcRotateCamera('camera', 9.44, 1.575, 0.1, new Vector3(0, 0, 0), scene);
+  camera.upperRadiusLimit = 34;
+  camera.lowerRadiusLimit = 0;
+  camera.maxZ = 500;
   camera.attachControl(canvas, true);
   const light = new HemisphericLight('light', new Vector3(0, 1, 0), scene);
   // const pointLight = new PointLight('pointLight', new Vector3(0, 20, 10), scene);
