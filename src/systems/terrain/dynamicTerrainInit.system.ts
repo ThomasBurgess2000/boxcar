@@ -18,6 +18,7 @@ import {
   Vector3,
   VertexBuffer,
 } from '@babylonjs/core';
+import { loadShader } from '../../utils/loadShaders';
 
 @RegisterSystem()
 export class DynamicTerrainInitSystem extends IterativeSystem {
@@ -25,7 +26,7 @@ export class DynamicTerrainInitSystem extends IterativeSystem {
     super((entity: Entity) => entity.hasComponent(DynamicTerrainComponent));
   }
 
-  protected updateEntity(entity: Entity): void {
+  protected async updateEntity(entity: Entity): Promise<void> {
     const dynamicTerrainComponent = entity.get(DynamicTerrainComponent)!;
     if (dynamicTerrainComponent.initializationStatus !== InitializationStatus.NotInitialized) {
       return;
@@ -113,7 +114,7 @@ export class DynamicTerrainInitSystem extends IterativeSystem {
       Texture.TRILINEAR_SAMPLINGMODE,
     );
 
-    const terrainShaderMaterial = this.makeShaders(noiseTexture);
+    const terrainShaderMaterial = await this.makeShaders(noiseTexture);
     dynamicTerrainComponent.dynamicTerrain.mesh.material = terrainShaderMaterial;
     dynamicTerrainComponent.dynamicTerrain.mesh.isPickable = false;
 
@@ -174,55 +175,12 @@ export class DynamicTerrainInitSystem extends IterativeSystem {
     return mapData;
   }
 
-  protected makeShaders(noiseTexture: RawTexture): ShaderMaterial {
-    ShaderStore.ShadersStore['terrainVertexShader'] = `
-    precision highp float;
+  protected async makeShaders(noiseTexture: RawTexture): Promise<ShaderMaterial> {
+    const vertexShader = await loadShader('src/assets/shaders/terrain/terrainVertexShader.glsl');
+    const fragmentShader = await loadShader('src/assets/shaders/terrain/terrainFragmentShader.glsl');
 
-    attribute vec3 position;
-    attribute vec2 uv;
-
-    uniform mat4 worldViewProjection;
-
-    varying float vHeight;
-    varying vec2 vUV;
-
-    void main() {
-        vHeight = position.y;
-        vUV = uv;
-        gl_Position = worldViewProjection * vec4(position, 1.0);
-    }
-`;
-
-    ShaderStore.ShadersStore['terrainFragmentShader'] = `
-    precision highp float;
-
-    varying float vHeight;
-
-    uniform float lowestPoint;
-    uniform float highestPoint;
-    uniform float seaLevel;
-    uniform float mountainLevel;
-
-    varying vec2 vUV;
-    uniform sampler2D noiseTexture;
-
-    void main(void) {
-        vec3 color;
-        float noise = texture2D(noiseTexture, vUV).r;
-
-        if (vHeight <= seaLevel) {
-            float depthFactor = (vHeight - lowestPoint) / (seaLevel - lowestPoint);
-            color = mix(vec3(0.0, 0.0, 0.3), vec3(0.0, 0.0, 1.0), depthFactor);
-        } else if (vHeight <= mountainLevel) {
-          float noiseFactor = mix(0.4, 0.6, noise); 
-          color = vec3(0.0, noiseFactor, 0.0);
-          } else {
-            color = vec3(1.0, 1.0, 1.0);
-        }
-
-        gl_FragColor = vec4(color, 1.0);
-    }
-`;
+    ShaderStore.ShadersStore['terrainVertexShader'] = vertexShader;
+    ShaderStore.ShadersStore['terrainFragmentShader'] = fragmentShader;
 
     const terrainShaderMaterial = new ShaderMaterial(
       'terrainShader',
