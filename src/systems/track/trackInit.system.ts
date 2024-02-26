@@ -1,8 +1,9 @@
 import { Entity, IterativeSystem } from 'tick-knock';
 import { Section, TrackComponent } from '../../components/track.component';
-import { Axis, Matrix, MeshBuilder, Quaternion, StandardMaterial, Vector3 } from '@babylonjs/core';
+import { Axis, Matrix, MeshBuilder, Quaternion, StandardMaterial, TransformNode, Vector3 } from '@babylonjs/core';
 import { InitializationStatus } from '../../utils/types';
 import { RegisterSystem } from '../../startup/systemRegistration';
+import { scene } from '../../game';
 
 @RegisterSystem()
 export class TrackInitSystem extends IterativeSystem {
@@ -22,6 +23,14 @@ export class TrackInitSystem extends IterativeSystem {
 
     trackComponent.rotations = track.rotations.map(Quaternion.FromRotationMatrix);
     trackComponent.initializationStatus = InitializationStatus.Initialized;
+  }
+
+  private getParentNode(): TransformNode {
+    if (scene.getTransformNodeByName('trackParent')) {
+      return scene.getTransformNodeByName('trackParent')!;
+    }
+    const node = new TransformNode('trackParent');
+    return node;
   }
 
   private createTrack(points: Vector3[], sections: Section[]): TrackData {
@@ -181,6 +190,7 @@ export class TrackInitSystem extends IterativeSystem {
       console.error('no track!');
       return;
     }
+    const trackParent = this.getParentNode();
     const normal = Vector3.Zero();
     const binormal = Vector3.Zero();
 
@@ -192,6 +202,7 @@ export class TrackInitSystem extends IterativeSystem {
     const sleeper = MeshBuilder.CreateBox('sleeper', { width: 0.2286, height: 0.1778, depth: 2.6 });
     sleeper.material = new StandardMaterial('');
     sleeper.position.y = -0.5;
+    sleeper.isPickable = false;
     for (let i = 0; i < points.length - 1; i += 1) {
       Vector3.TransformNormalToRef(Axis.Y, track.carriageRotations[i], normal);
       Vector3.TransformNormalToRef(Axis.Z, track.carriageRotations[i], binormal);
@@ -207,7 +218,10 @@ export class TrackInitSystem extends IterativeSystem {
       nsleeper.rotationQuaternion = Quaternion.FromRotationMatrix(track.carriageRotations[i]);
       nsleeper.position.subtractInPlace(normal.scale(0.5));
       nsleeper.freezeWorldMatrix();
+      nsleeper.isPickable = false;
+      nsleeper.parent = trackParent;
     }
+    sleeper.parent = trackParent;
 
     const closedLoop = points[0].equals(points[points.length - 1]);
 
@@ -218,9 +232,12 @@ export class TrackInitSystem extends IterativeSystem {
 
     const plusTube = MeshBuilder.CreateTube('tube', { path: plusPoints, radius: 0.1, tessellation: 4 });
     const negTube = MeshBuilder.CreateTube('tube', { path: negPoints, radius: 0.1, tessellation: 4 });
-
+    plusTube.isPickable = false;
+    negTube.isPickable = false;
     plusTube.freezeWorldMatrix();
     negTube.freezeWorldMatrix();
+    plusTube.parent = trackParent;
+    negTube.parent = trackParent;
   }
 }
 

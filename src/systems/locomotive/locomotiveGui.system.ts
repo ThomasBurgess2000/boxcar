@@ -17,13 +17,13 @@ export class LocomotiveGuiSystem extends IterativeSystem {
     this.guiTexture = AdvancedDynamicTexture.CreateFullscreenUI('UI');
     this.speedText = new TextBlock();
     this.speedText.width = 0.2;
-    this.speedText.height = "40px";
-    this.speedText.color = "white";
+    this.speedText.height = '40px';
+    this.speedText.color = 'black';
     this.speedText.fontSize = 24;
     this.speedText.horizontalAlignment = Control.HORIZONTAL_ALIGNMENT_RIGHT;
     this.speedText.verticalAlignment = Control.VERTICAL_ALIGNMENT_BOTTOM;
     this.speedText.textHorizontalAlignment = Control.HORIZONTAL_ALIGNMENT_RIGHT;
-    this.speedText.paddingRight = "20px";
+    this.speedText.paddingRight = '20px';
     this.guiTexture.addControl(this.speedText);
   }
 

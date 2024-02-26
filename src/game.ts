@@ -3,7 +3,6 @@
 
 import { initSystems } from './startup/systemRegistration';
 import { ArcRotateCamera, Color3, Color4, Engine, HemisphericLight, Mesh, PointLight, Scene, Vector3 } from '@babylonjs/core';
-import { Inspector } from '@babylonjs/inspector';
 import { EcsEngine } from './singletons/ecsEngine';
 import { Section, TrackComponent } from './components/track.component';
 import { Entity } from 'tick-knock';
@@ -11,12 +10,14 @@ import { LocomotiveComponent } from './components/locomotive/locomotive.componen
 import '@babylonjs/loaders/glTF';
 import { TreeComponent } from './components/tree.component';
 import { PositionComponent } from './components/babylonPrimitives/position.component';
-import { AddButtonComponent } from './components/trackBuilder/addButton.component';
 import { LocomotiveInputComponent } from './components/locomotive/locomotiveInput.component';
 import { KeysComponent } from './components/keys.component';
 import { CarComponent } from './components/locomotive/car.component';
+import { DynamicTerrainComponent } from './components/dynamicTerrain.component';
+import { Inspector } from '@babylonjs/inspector';
 
 export let scene: Scene;
+const trackHeight = 0.5;
 
 export async function startGame() {
   // Create canvas and engine
@@ -28,10 +29,17 @@ export async function startGame() {
 
   scene = new Scene(engine);
   scene.useRightHandedSystem = true;
-  scene.clearColor = Color4.FromColor3(Color3.Black());
-  // Inspector.Show(scene, {});
+  scene.clearColor = Color4.FromColor3(Color3.White());
+  scene.fogMode = Scene.FOGMODE_LINEAR;
+  scene.fogColor = Color3.White();
+  scene.fogStart = 300;
+  scene.fogEnd = 500;
+  Inspector.Show(scene, {});
 
   const camera = new ArcRotateCamera('camera', 9.44, 1.575, 0.1, new Vector3(0, 0, 0), scene);
+  camera.upperRadiusLimit = 34;
+  camera.lowerRadiusLimit = 0;
+  camera.maxZ = 500;
   camera.attachControl(canvas, true);
   const light = new HemisphericLight('light', new Vector3(0, 1, 0), scene);
   // const pointLight = new PointLight('pointLight', new Vector3(0, 20, 10), scene);
@@ -46,11 +54,38 @@ export async function startGame() {
     ecsEngine.update(engine.getDeltaTime() / 1000);
   });
 
-  const trackSections = ['s', 's', 's', 's', 's', 'l', 's', 'r', 's', 's'];
+  const trackSections = [
+    's',
+    's',
+    's',
+    's',
+    's',
+    'l',
+    's',
+    'r',
+    's',
+    's',
+    's',
+    's',
+    'r',
+    's',
+    'l',
+    'l',
+    's',
+    'r',
+    's',
+    'r',
+    's',
+    's',
+    'l',
+    's',
+    's',
+    's',
+  ];
   const trackComponent = createTrack(trackSections);
   createLocomotive(trackComponent);
   makeTrees();
-  // createAddButton();
+  makeDynamicTerrain(trackComponent.points);
 }
 
 function addCurveSection(points: Vector3[], turnDirection: 'left' | 'right', turnAngle: number): Vector3[] {
@@ -98,7 +133,7 @@ function addStraightSection(points: Vector3[], n: number): Vector3[] {
   // First section
   if (points.length === 0) {
     for (let i = 0; i < n; i++) {
-      newPoints.push(new Vector3(i * 0.5, 0, 0));
+      newPoints.push(new Vector3(i * 0.5, trackHeight, 0));
     }
   } else {
     const currentPoint = points[points.length - 1];
@@ -202,10 +237,9 @@ function makeTrees() {
   }
 }
 
-function createAddButton() {
+function makeDynamicTerrain(flatPoints: Vector3[] = []) {
   const ecsEngine = EcsEngine.getInstance();
-  const entity = new Entity();
-  const addButtonComponent = new AddButtonComponent();
-  entity.add(addButtonComponent);
-  ecsEngine.addEntity(entity);
+  const dynamicTerrainEntity = new Entity();
+  dynamicTerrainEntity.add(new DynamicTerrainComponent(flatPoints));
+  ecsEngine.addEntity(dynamicTerrainEntity);
 }
