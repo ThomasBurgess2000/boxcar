@@ -17,7 +17,6 @@ function getRegisteredSystems() {
 export async function initSystems() {
   const ecsEngine = EcsEngine.getInstance();
   const systemConstructors = getRegisteredSystems();
-  console.log('systemConstructors', systemConstructors);
   for (const SystemConstructor of systemConstructors) {
     const system = new SystemConstructor();
     ecsEngine.addSystem(system);

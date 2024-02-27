@@ -23,26 +23,20 @@ import { loadShader } from '../../../utils/loadShaders';
 export class TreeInitSystem extends IterativeSystem {
   public constructor() {
     super((entity: Entity) => entity.hasComponent(TreeComponent));
+    this.createMasterTree();
   }
 
   protected async updateEntity(entity: Entity): Promise<void> {
     const treeComponent = entity.get(TreeComponent)!;
-    if (treeComponent.masterTreeInitializationStatus === InitializationStatus.NotInitialized) {
-      treeComponent.masterTreeInitializationStatus = InitializationStatus.Initializing;
-      this.createMasterTree(treeComponent);
-    }
-    if (
-      treeComponent.initializationStatus === InitializationStatus.NotInitialized &&
-      treeComponent.masterTreeInitializationStatus === InitializationStatus.Initialized
-    ) {
+    if (treeComponent.initializationStatus === InitializationStatus.NotInitialized && scene.getMeshByName('masterTree')) {
       treeComponent.initializationStatus = InitializationStatus.Initializing;
       this.createTreeInstance(entity, treeComponent);
     }
   }
 
-  private async createMasterTree(treeComponent: TreeComponent): Promise<void> {
-    const vertexShader = await loadShader('src/assets/shaders/tree/treeVertexShader.glsl');
-    const fragmentShader = await loadShader('src/assets/shaders/tree/treeFragmentShader.glsl');
+  private async createMasterTree(): Promise<void> {
+    const vertexShader = await loadShader('assets/shaders/tree/treeVertexShader.glsl');
+    const fragmentShader = await loadShader('assets/shaders/tree/treeFragmentShader.glsl');
 
     ShaderStore.ShadersStore['treeVertexShader'] = vertexShader;
     ShaderStore.ShadersStore['treeFragmentShader'] = fragmentShader;
@@ -105,7 +99,6 @@ export class TreeInitSystem extends IterativeSystem {
       foliage.material = shaderMaterial;
 
       tree.setEnabled(false);
-      treeComponent.masterTreeInitializationStatus = InitializationStatus.Initialized;
     });
   }
 
@@ -123,11 +116,8 @@ export class TreeInitSystem extends IterativeSystem {
     const foliage = tree.getChildMeshes().find((mesh) => mesh.name === 'foliage') as Mesh;
     const foliageInstance = foliage.createInstance('foliageInstance');
 
-    foliageInstance.parent = treeInstance;
-    trunkInstance.parent = treeInstance;
-    treeInstance.freezeWorldMatrix();
-    foliageInstance.freezeWorldMatrix();
-    trunkInstance.freezeWorldMatrix();
+    foliageInstance.setParent(treeInstance);
+    trunkInstance.setParent(treeInstance);
     foliageInstance.alwaysSelectAsActiveMesh = true;
     trunkInstance.alwaysSelectAsActiveMesh = true;
     const transformNodeComponent = new TransformNodeComponent(treeInstance);

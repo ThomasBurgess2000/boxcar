@@ -2,7 +2,7 @@ import { Entity, IterativeSystem } from 'tick-knock';
 import { DynamicTerrainComponent } from '../../components/dynamicTerrain.component';
 import { RegisterSystem } from '../../startup/systemRegistration';
 import { DynamicTerrain } from '../../externals/babylon.dynamicTerrain_modular';
-import { scene } from '../../game';
+import { MAX_VIEW_DISTANCE, scene } from '../../game';
 import alea from 'alea';
 import { NoiseFunction2D, createNoise2D } from 'simplex-noise';
 import { InitializationStatus } from '../../utils/types';
@@ -32,31 +32,20 @@ export class DynamicTerrainInitSystem extends IterativeSystem {
       return;
     }
     dynamicTerrainComponent.initializationStatus = InitializationStatus.Initializing;
-    const mapSubX = 500;
-    const mapSubZ = 500;
+    const mapSubX = 1000;
+    const mapSubZ = 400;
     const seed = 0.3;
     const noiseScale = 0.005;
     const elevationScale = 2;
     const prng = alea(seed);
     const noise2D = createNoise2D(prng);
     const mapData = this.makeMapData(mapSubX, mapSubZ, noise2D, noiseScale, elevationScale, dynamicTerrainComponent.flatPoints, 20);
-    // Log the highest and lowest points
-    let minHeight = Number.MAX_VALUE;
-    let maxHeight = Number.MIN_VALUE;
-    for (let i = 0; i < mapData.length; i += 3) {
-      const height = mapData[i + 1];
-      if (height < minHeight) {
-        minHeight = height;
-      }
-      if (height > maxHeight) {
-        maxHeight = height;
-      }
-    }
+
     const mapParams = {
       mapData: mapData,
       mapSubX: mapSubX,
       mapSubZ: mapSubZ,
-      terrainSub: 1000,
+      terrainSub: MAX_VIEW_DISTANCE * 2,
     };
     const terrain = new DynamicTerrain('dynamicTerrain', mapParams, scene);
     dynamicTerrainComponent.dynamicTerrain = terrain;
@@ -150,7 +139,7 @@ export class DynamicTerrainInitSystem extends IterativeSystem {
     const mapData = new Float32Array(mapSubX * mapSubZ * 3);
     for (let l = 0; l < mapSubZ; l++) {
       for (let w = 0; w < mapSubX; w++) {
-        const x = (w - mapSubX * 0.5) * 5.0;
+        const x = (w - mapSubX * 0.5) * 2.0;
         const z = (l - mapSubZ * 0.5) * 2.0;
         let y = this.layeredNoise(x, z, noise2D, noiseScale, elevationScale);
         y *= (0.5 + y) * y * elevationScale;
@@ -174,8 +163,8 @@ export class DynamicTerrainInitSystem extends IterativeSystem {
   }
 
   protected async makeShaders(noiseTexture: RawTexture): Promise<ShaderMaterial> {
-    const vertexShader = await loadShader('src/assets/shaders/terrain/terrainVertexShader.glsl');
-    const fragmentShader = await loadShader('src/assets/shaders/terrain/terrainFragmentShader.glsl');
+    const vertexShader = await loadShader('assets/shaders/terrain/terrainVertexShader.glsl');
+    const fragmentShader = await loadShader('assets/shaders/terrain/terrainFragmentShader.glsl');
 
     ShaderStore.ShadersStore['terrainVertexShader'] = vertexShader;
     ShaderStore.ShadersStore['terrainFragmentShader'] = fragmentShader;
@@ -201,5 +190,19 @@ export class DynamicTerrainInitSystem extends IterativeSystem {
     terrainShaderMaterial.setFloat('seaLevel', -1);
     terrainShaderMaterial.setFloat('mountainLevel', 38);
     return terrainShaderMaterial;
+  }
+
+  protected logMinMaxHeight(mapData: Float32Array) {
+    let minHeight = Number.MAX_VALUE;
+    let maxHeight = Number.MIN_VALUE;
+    for (let i = 0; i < mapData.length; i += 3) {
+      const height = mapData[i + 1];
+      if (height < minHeight) {
+        minHeight = height;
+      }
+      if (height > maxHeight) {
+        maxHeight = height;
+      }
+    }
   }
 }
