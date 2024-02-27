@@ -15,9 +15,11 @@ import { KeysComponent } from './components/keys.component';
 import { CarComponent } from './components/locomotive/car.component';
 import { DynamicTerrainComponent } from './components/dynamicTerrain.component';
 import { Inspector } from '@babylonjs/inspector';
+import { PlacerComponent } from './components/placer.component';
 
 export let scene: Scene;
 const trackHeight = 0.5;
+export const MAX_VIEW_DISTANCE = 300;
 
 export async function startGame() {
   // Create canvas and engine
@@ -29,17 +31,17 @@ export async function startGame() {
 
   scene = new Scene(engine);
   scene.useRightHandedSystem = true;
-  scene.clearColor = Color4.FromColor3(Color3.White());
+  scene.clearColor = Color4.FromColor3(new Color3(0 / 255, 221 / 255, 255 / 255));
   scene.fogMode = Scene.FOGMODE_LINEAR;
   scene.fogColor = Color3.White();
-  scene.fogStart = 300;
+  scene.fogStart = 400;
   scene.fogEnd = 500;
   Inspector.Show(scene, {});
 
   const camera = new ArcRotateCamera('camera', 9.44, 1.575, 0.1, new Vector3(0, 0, 0), scene);
   camera.upperRadiusLimit = 34;
   camera.lowerRadiusLimit = 0;
-  camera.maxZ = 500;
+  camera.maxZ = MAX_VIEW_DISTANCE;
   camera.attachControl(canvas, true);
   const light = new HemisphericLight('light', new Vector3(0, 1, 0), scene);
   // const pointLight = new PointLight('pointLight', new Vector3(0, 20, 10), scene);
@@ -83,9 +85,9 @@ export async function startGame() {
     's',
   ];
   const trackComponent = createTrack(trackSections);
+  makeDynamicTerrain(trackComponent.points);
   createLocomotive(trackComponent);
   makeTrees();
-  makeDynamicTerrain(trackComponent.points);
 }
 
 function addCurveSection(points: Vector3[], turnDirection: 'left' | 'right', turnAngle: number): Vector3[] {
@@ -207,13 +209,8 @@ function makeTrees() {
       treeEntity.add(treeComponent);
       const randomDistanceVariation = Math.random() * 10;
       const distanceFromTrack = 5;
-      const positionComponent = new PositionComponent({
-        x: i * 10 + randomDistanceVariation,
-        y: 0,
-        z: j * 10 + randomDistanceVariation + distanceFromTrack,
-        unmoving: true,
-      });
-      treeEntity.add(positionComponent);
+      const placerComponent = new PlacerComponent(i * 10 + randomDistanceVariation, j * 10 + randomDistanceVariation + distanceFromTrack);
+      treeEntity.add(placerComponent);
       ecsEngine.addEntity(treeEntity);
     }
   }
@@ -225,13 +222,8 @@ function makeTrees() {
       treeEntity.add(treeComponent);
       const randomDistanceVariation = Math.random() * 10;
       const distanceFromTrack = 15;
-      const positionComponent = new PositionComponent({
-        x: i * 10 + randomDistanceVariation,
-        y: 0,
-        z: j * -10 + randomDistanceVariation - distanceFromTrack,
-        unmoving: true,
-      });
-      treeEntity.add(positionComponent);
+      const placerComponent = new PlacerComponent(i * 10 + randomDistanceVariation, j * -10 + randomDistanceVariation - distanceFromTrack);
+      treeEntity.add(placerComponent);
       ecsEngine.addEntity(treeEntity);
     }
   }
