@@ -17,7 +17,8 @@ You can always try the latest build here: https://thomasburgess2000.github.io/bo
 - [ ] Make perimetric LOD
 - [ ] Create new map data when the camera moves outside the current map
 - [x] Fix tree spawning
-- [ ] Add trees to the dynamic terrain
+- [x] Add trees to the dynamic terrain
+- [ ] make the trees generate/dispose as you move
 - [ ] Add walkable player
 - [x] Make larger map
 - [x] Clean up dynamic terrain system (move params to component)
