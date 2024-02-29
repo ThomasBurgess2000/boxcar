@@ -1216,22 +1216,23 @@ export class DynamicTerrain {
     options?: { normal: Vector3 },
     inverted?: boolean,
   ): number {
-    const x0 = mapData[0];
-    const z0 = mapData[2];
+    let x0 = mapData[0];
+    let z0 = mapData[2];
 
-    // reset x and z in the map space so they are between 0 and the map size
+    // Reset x and z in the map space so they are between 0 and the map size
     x = x - Math.floor((x - x0) / mapSizeX) * mapSizeX;
     z = z - Math.floor((z - z0) / mapSizeZ) * mapSizeZ;
 
-    const col1 = Math.floor(((x - x0) * mapSubX) / mapSizeX);
-    const row1 = Math.floor(((z - z0) * mapSubZ) / mapSizeZ);
-    const col2 = (col1 + 1) % mapSubX;
-    const row2 = (row1 + 1) % mapSubZ;
-    // starting indexes of the positions of 4 vertices defining a quad on the map
-    const idx1 = 3 * (row1 * mapSubX + col1);
-    const idx2 = 3 * (row1 * mapSubX + col2);
-    const idx3 = 3 * (row2 * mapSubX + col1);
-    const idx4 = 3 * (row2 * mapSubX + col2);
+    let col1 = Math.floor(((x - x0) * mapSubX) / mapSizeX);
+    let row1 = Math.floor(((z - z0) * mapSubZ) / mapSizeZ);
+    let col2 = (col1 + 1) % mapSubX;
+    let row2 = (row1 + 1) % mapSubZ;
+
+    // Starting indexes of the positions of 4 vertices defining a quad on the map
+    let idx1 = 3 * (row1 * mapSubX + col1);
+    let idx2 = 3 * (row1 * mapSubX + col2);
+    let idx3 = 3 * (row2 * mapSubX + col1);
+    let idx4 = 3 * (row2 * mapSubX + col2);
 
     const v1 = DynamicTerrain._v1;
     const v2 = DynamicTerrain._v2;
@@ -1242,47 +1243,47 @@ export class DynamicTerrain {
     v3.copyFromFloats(mapData[idx3], mapData[idx3 + 1], mapData[idx3 + 2]);
     v4.copyFromFloats(mapData[idx4], mapData[idx4 + 1], mapData[idx4 + 2]);
 
-    const vAvB = DynamicTerrain._vAvB;
-    const vAvC = DynamicTerrain._vAvC;
-    const norm = DynamicTerrain._norm;
-    const vA = v1;
-    let vB;
-    let vC;
-    let v;
+    // Determine if the point is in the upper or lower triangle of the quad
+    let isInUpperTriangle = (z - v1.z) / (v3.z - v1.z) < (x - v1.x) / (v2.x - v1.x);
 
-    const xv4v1 = v4.x - v1.x;
-    const zv4v1 = v4.z - v1.z;
-    if (xv4v1 == 0 || zv4v1 == 0) {
-      return v1.y;
-    }
-    const cd = zv4v1 / xv4v1;
-    const h = v1.z - cd * v1.x;
-    if (z < cd * x + h) {
-      vB = v4;
-      vC = v2;
-      v = vA;
+    // Perform barycentric interpolation to find the height at the point (x, z)
+    let height;
+    if (isInUpperTriangle) {
+      height = DynamicTerrain._BarycentricInterpolation(x, z, v1, v2, v4);
     } else {
-      vB = v3;
-      vC = v4;
-      v = vB;
-    }
-    vB.subtractToRef(vA, vAvB);
-    vC.subtractToRef(vA, vAvC);
-    Vector3.CrossToRef(vAvB, vAvC, norm);
-    norm.normalize();
-    if (inverted) {
-      norm.scaleInPlace(-1.0);
-    }
-    if (options && options.normal) {
-      options.normal.copyFrom(norm);
-    }
-    const d = -(norm.x * v.x + norm.y * v.y + norm.z * v.z);
-    let y = v.y;
-    if (norm.y != 0.0) {
-      y = -(norm.x * x + norm.z * z + d) / norm.y;
+      height = DynamicTerrain._BarycentricInterpolation(x, z, v1, v3, v4);
     }
 
-    return y;
+    // If a normal is requested, compute it using the cross product of two edges of the triangle
+    if (options && options.normal) {
+      const edge1 = DynamicTerrain._vAvB;
+      const edge2 = DynamicTerrain._vAvC;
+      const normal = DynamicTerrain._norm;
+      if (isInUpperTriangle) {
+        v2.subtractToRef(v1, edge1);
+        v4.subtractToRef(v1, edge2);
+      } else {
+        v3.subtractToRef(v1, edge1);
+        v4.subtractToRef(v1, edge2);
+      }
+      Vector3.CrossToRef(edge1, edge2, normal);
+      normal.normalize();
+      if (inverted) {
+        normal.scaleInPlace(-1.0);
+      }
+      options.normal.copyFrom(normal);
+    }
+
+    return height;
+  }
+
+  // Helper function for barycentric interpolation
+  private static _BarycentricInterpolation(x: number, z: number, v1: Vector3, v2: Vector3, v3: Vector3): number {
+    let det = (v2.z - v3.z) * (v1.x - v3.x) + (v3.x - v2.x) * (v1.z - v3.z);
+    let l1 = ((v2.z - v3.z) * (x - v3.x) + (v3.x - v2.x) * (z - v3.z)) / det;
+    let l2 = ((v3.z - v1.z) * (x - v3.x) + (v1.x - v3.x) * (z - v3.z)) / det;
+    let l3 = 1 - l1 - l2;
+    return l1 * v1.y + l2 * v2.y + l3 * v3.y;
   }
 
   /**

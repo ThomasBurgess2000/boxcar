@@ -120,6 +120,7 @@ export class TreeInitSystem extends IterativeSystem {
     trunkInstance.setParent(treeInstance);
     foliageInstance.alwaysSelectAsActiveMesh = true;
     trunkInstance.alwaysSelectAsActiveMesh = true;
+    treeComponent.treeInstance = treeInstance;
     const transformNodeComponent = new TransformNodeComponent(treeInstance);
     entity.add(transformNodeComponent);
     treeComponent.initializationStatus = InitializationStatus.Initialized;

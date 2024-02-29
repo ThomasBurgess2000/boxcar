@@ -7,16 +7,14 @@ import alea from 'alea';
 import { NoiseFunction2D, createNoise2D } from 'simplex-noise';
 import { InitializationStatus } from '../../utils/types';
 import {
-  Color3,
   Engine,
   RawTexture,
   ShaderLanguage,
   ShaderMaterial,
   ShaderStore,
   Texture,
-  Vector2,
+  UniversalCamera,
   Vector3,
-  VertexBuffer,
 } from '@babylonjs/core';
 import { loadShader } from '../../utils/loadShaders';
 
@@ -32,78 +30,48 @@ export class DynamicTerrainInitSystem extends IterativeSystem {
       return;
     }
     dynamicTerrainComponent.initializationStatus = InitializationStatus.Initializing;
-    const mapSubX = 1000;
-    const mapSubZ = 400;
-    const seed = 0.3;
-    const noiseScale = 0.005;
-    const elevationScale = 2;
-    const prng = alea(seed);
+
+    const prng = alea(dynamicTerrainComponent.seed);
     const noise2D = createNoise2D(prng);
-    const mapData = this.makeMapData(mapSubX, mapSubZ, noise2D, noiseScale, elevationScale, dynamicTerrainComponent.flatPoints, 20);
+    const mapData = this.makeMapData(
+      dynamicTerrainComponent.mapSubX,
+      dynamicTerrainComponent.mapSubZ,
+      noise2D,
+      dynamicTerrainComponent.noiseScale,
+      dynamicTerrainComponent.elevationScale,
+      dynamicTerrainComponent.flatPoints,
+      20,
+    );
 
     const mapParams = {
       mapData: mapData,
-      mapSubX: mapSubX,
-      mapSubZ: mapSubZ,
+      mapSubX: dynamicTerrainComponent.mapSubX,
+      mapSubZ: dynamicTerrainComponent.mapSubZ,
       terrainSub: MAX_VIEW_DISTANCE * 2,
     };
     const terrain = new DynamicTerrain('dynamicTerrain', mapParams, scene);
     dynamicTerrainComponent.dynamicTerrain = terrain;
 
-    const terrainWidth = mapSubX;
-    const terrainHeight = mapSubZ;
-    const noiseResolution = 1.0; // Smaller values make smoother noise
-
-    // Create a 1D array to hold the noise values
-    const noiseValues = new Float32Array(terrainWidth * terrainHeight);
-
-    // Populate the noise array with values
-    for (let z = 0; z < terrainHeight; z++) {
-      for (let x = 0; x < terrainWidth; x++) {
-        // Calculate the noise value at this point
-        const noiseValue = noise2D(x * noiseResolution, z * noiseResolution);
-
-        // Optionally, normalize and scale the noise value
-        const normalizedNoiseValue = (noiseValue + 1) / 2; // Normalize to [0, 1]
-
-        // Store the noise value in the array
-        noiseValues[z * terrainWidth + x] = normalizedNoiseValue;
-      }
-    }
-
-    const noiseTextureWidth = Math.sqrt(mapSubX * mapSubZ);
-    const noiseTextureHeight = noiseTextureWidth; // Square texture for simplicity
-
-    // Create an empty array for the texture
-    const noiseTextureData = new Uint8Array(noiseTextureWidth * noiseTextureHeight * 4); // *4 for RGBA
-
-    // Populate the texture array
-    for (let i = 0, l = noiseTextureData.length; i < l; i += 4) {
-      // Assuming 'noiseValues' is a 1D array of your noise data normalized to [0, 1]
-      // Map the 1D noise array to the 2D texture array
-      const noiseValue = Math.floor(i / 4); // This maps directly, but you might need a more complex mapping
-      const normalizedNoiseValue = Math.round(noiseValues[noiseValue] * 255);
-      noiseTextureData[i] = normalizedNoiseValue; // R
-      noiseTextureData[i + 1] = normalizedNoiseValue; // G
-      noiseTextureData[i + 2] = normalizedNoiseValue; // B
-      noiseTextureData[i + 3] = 255; // A
-    }
-
-    // Create the texture
-    const noiseTexture = new RawTexture(
-      noiseTextureData,
-      noiseTextureWidth,
-      noiseTextureHeight,
-      Engine.TEXTUREFORMAT_RGBA,
-      scene,
-      false,
-      false,
-      Texture.TRILINEAR_SAMPLINGMODE,
-    );
+    const noiseTexture = this.makeTexture(dynamicTerrainComponent, noise2D);
 
     const terrainShaderMaterial = await this.makeShaders(noiseTexture);
     dynamicTerrainComponent.dynamicTerrain.mesh.material = terrainShaderMaterial;
+
     dynamicTerrainComponent.dynamicTerrain.mesh.isPickable = false;
+
+    // Keep the terrain centered in the camera's view
+    dynamicTerrainComponent.dynamicTerrain.beforeUpdate = (): void => {
+      const _activeCamera = scene.activeCamera as UniversalCamera;
+      if (!_activeCamera) {
+        console.error('No active camera');
+        return;
+      }
+      const offset = Vector3.Center(_activeCamera.position, _activeCamera.target);
+      terrain.shiftFromCamera = {
+        x: -offset._x,
+        z: -offset._z,
+      };
+    };
 
     dynamicTerrainComponent.initializationStatus = InitializationStatus.Initialized;
   }
@@ -112,19 +80,6 @@ export class DynamicTerrainInitSystem extends IterativeSystem {
     const baseNoise = noise2D(x * noiseScale, z * noiseScale) * elevationScale;
     const detailNoise = noise2D(x * (noiseScale * 2), z * (noiseScale * 2)) * (elevationScale / 2);
     return baseNoise + detailNoise;
-  }
-
-  protected getColorForHeight(height: number) {
-    const seaLevel = 0; // Define sea level or base level
-    const mountainLevel = 20; // Define the level where hills become mountains
-
-    if (height < seaLevel) {
-      return new Color3(0, 0, 1); // Blue for water
-    } else if (height < mountainLevel) {
-      return new Color3(0, 1, 0); // Green for lowlands
-    } else {
-      return new Color3(1, 1, 1); // White for mountain tops
-    }
   }
 
   protected makeMapData(
@@ -160,6 +115,54 @@ export class DynamicTerrainInitSystem extends IterativeSystem {
       }
     }
     return mapData;
+  }
+
+  protected makeTexture(dynamicTerrainComponent: DynamicTerrainComponent, noise2D: NoiseFunction2D): RawTexture {
+    const terrainWidth = dynamicTerrainComponent.mapSubX;
+    const terrainHeight = dynamicTerrainComponent.mapSubZ;
+    const noiseResolution = 1.0; // Smaller values make smoother noise
+    const noiseValues = new Float32Array(terrainWidth * terrainHeight);
+    for (let z = 0; z < terrainHeight; z++) {
+      for (let x = 0; x < terrainWidth; x++) {
+        const noiseValue = noise2D(x * noiseResolution, z * noiseResolution);
+
+        // Optionally, normalize and scale the noise value
+        const normalizedNoiseValue = (noiseValue + 1) / 2; // Normalize to [0, 1]
+
+        noiseValues[z * terrainWidth + x] = normalizedNoiseValue;
+      }
+    }
+
+    const noiseTextureWidth = Math.sqrt(dynamicTerrainComponent.mapSubX * dynamicTerrainComponent.mapSubZ);
+    const noiseTextureHeight = noiseTextureWidth; // Square texture for simplicity
+
+    // Create an empty array for the texture
+    const noiseTextureData = new Uint8Array(noiseTextureWidth * noiseTextureHeight * 4); // *4 for RGBA
+
+    // Populate the texture array
+    for (let i = 0, l = noiseTextureData.length; i < l; i += 4) {
+      // Assuming 'noiseValues' is a 1D array of your noise data normalized to [0, 1]
+      // Map the 1D noise array to the 2D texture array
+      const noiseValue = Math.floor(i / 4); // This maps directly, but you might need a more complex mapping
+      const normalizedNoiseValue = Math.round(noiseValues[noiseValue] * 255);
+      noiseTextureData[i] = normalizedNoiseValue; // R
+      noiseTextureData[i + 1] = normalizedNoiseValue; // G
+      noiseTextureData[i + 2] = normalizedNoiseValue; // B
+      noiseTextureData[i + 3] = 255; // A
+    }
+
+    // Create the texture
+    const noiseTexture = new RawTexture(
+      noiseTextureData,
+      noiseTextureWidth,
+      noiseTextureHeight,
+      Engine.TEXTUREFORMAT_RGBA,
+      scene,
+      false,
+      false,
+      Texture.TRILINEAR_SAMPLINGMODE,
+    );
+    return noiseTexture;
   }
 
   protected async makeShaders(noiseTexture: RawTexture): Promise<ShaderMaterial> {

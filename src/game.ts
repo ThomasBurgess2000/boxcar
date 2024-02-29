@@ -8,14 +8,12 @@ import { Section, TrackComponent } from './components/track.component';
 import { Entity } from 'tick-knock';
 import { LocomotiveComponent } from './components/locomotive/locomotive.component';
 import '@babylonjs/loaders/glTF';
-import { TreeComponent } from './components/tree.component';
-import { PositionComponent } from './components/babylonPrimitives/position.component';
 import { LocomotiveInputComponent } from './components/locomotive/locomotiveInput.component';
 import { KeysComponent } from './components/keys.component';
 import { CarComponent } from './components/locomotive/car.component';
 import { DynamicTerrainComponent } from './components/dynamicTerrain.component';
 import { Inspector } from '@babylonjs/inspector';
-import { PlacerComponent } from './components/placer.component';
+import { MapComponent } from './components/map.component';
 
 export let scene: Scene;
 const trackHeight = 0.5;
@@ -44,7 +42,6 @@ export async function startGame() {
   camera.maxZ = MAX_VIEW_DISTANCE;
   camera.attachControl(canvas, true);
   const light = new HemisphericLight('light', new Vector3(0, 1, 0), scene);
-  // const pointLight = new PointLight('pointLight', new Vector3(0, 20, 10), scene);
 
   engine.runRenderLoop(() => {
     scene.render();
@@ -85,9 +82,9 @@ export async function startGame() {
     's',
   ];
   const trackComponent = createTrack(trackSections);
-  makeDynamicTerrain(trackComponent.points);
+  const dynamicTerrainComponent = makeDynamicTerrain(trackComponent.points);
   createLocomotive(trackComponent);
-  makeTrees();
+  makeMap(dynamicTerrainComponent);
 }
 
 function addCurveSection(points: Vector3[], turnDirection: 'left' | 'right', turnAngle: number): Vector3[] {
@@ -197,41 +194,19 @@ function createLocomotive(trackComponent: TrackComponent) {
   ecsEngine.addEntity(entity);
 }
 
-function makeTrees() {
-  const ecsEngine = EcsEngine.getInstance();
-  const treeRowCount = 10;
-
-  // Make a bunch of trees
-  for (let i = 0; i < treeRowCount; i++) {
-    for (let j = 0; j < treeRowCount; j++) {
-      const treeEntity = new Entity();
-      const treeComponent = new TreeComponent();
-      treeEntity.add(treeComponent);
-      const randomDistanceVariation = Math.random() * 10;
-      const distanceFromTrack = 5;
-      const placerComponent = new PlacerComponent(i * 10 + randomDistanceVariation, j * 10 + randomDistanceVariation + distanceFromTrack);
-      treeEntity.add(placerComponent);
-      ecsEngine.addEntity(treeEntity);
-    }
-  }
-
-  for (let i = 0; i < treeRowCount; i++) {
-    for (let j = 0; j < treeRowCount; j++) {
-      const treeEntity = new Entity();
-      const treeComponent = new TreeComponent();
-      treeEntity.add(treeComponent);
-      const randomDistanceVariation = Math.random() * 10;
-      const distanceFromTrack = 15;
-      const placerComponent = new PlacerComponent(i * 10 + randomDistanceVariation, j * -10 + randomDistanceVariation - distanceFromTrack);
-      treeEntity.add(placerComponent);
-      ecsEngine.addEntity(treeEntity);
-    }
-  }
-}
-
-function makeDynamicTerrain(flatPoints: Vector3[] = []) {
+function makeDynamicTerrain(flatPoints: Vector3[] = []): DynamicTerrainComponent {
   const ecsEngine = EcsEngine.getInstance();
   const dynamicTerrainEntity = new Entity();
-  dynamicTerrainEntity.add(new DynamicTerrainComponent(flatPoints));
+  const dynamicTerrainComponent = new DynamicTerrainComponent(flatPoints);
+  dynamicTerrainEntity.add(dynamicTerrainComponent);
   ecsEngine.addEntity(dynamicTerrainEntity);
+  return dynamicTerrainComponent;
+}
+
+function makeMap(dynamicTerrainComponent: DynamicTerrainComponent) {
+  const ecsEngine = EcsEngine.getInstance();
+  const mapEntity = new Entity();
+  const mapComponent = new MapComponent(dynamicTerrainComponent, true);
+  mapEntity.add(mapComponent);
+  ecsEngine.addEntity(mapEntity);
 }
