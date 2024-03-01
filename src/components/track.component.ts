@@ -4,10 +4,9 @@ import { InitializationStatus } from '../utils/types';
 export class TrackComponent {
   public initializationStatus: InitializationStatus = InitializationStatus.NotInitialized;
   public rotations: Quaternion[] = [];
-  constructor(
-    public points: Vector3[],
-    public sections: Section[],
-  ) {}
+  public points: Vector3[] = [];
+  public sections: Section[] = [];
+  constructor(public trackDefinition: string[]) {}
 }
 
 export class Section {

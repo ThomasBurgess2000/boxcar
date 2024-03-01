@@ -2,9 +2,9 @@
 /// <reference lib="dom.iterable" />
 
 import { initSystems } from './startup/systemRegistration';
-import { ArcRotateCamera, Color3, Color4, Engine, HemisphericLight, Mesh, PointLight, Scene, Vector3 } from '@babylonjs/core';
+import { ArcRotateCamera, Color3, Color4, Engine, HavokPlugin, HemisphericLight, Scene, Vector3 } from '@babylonjs/core';
 import { EcsEngine } from './singletons/ecsEngine';
-import { Section, TrackComponent } from './components/track.component';
+import { TrackComponent } from './components/track.component';
 import { Entity } from 'tick-knock';
 import { LocomotiveComponent } from './components/locomotive/locomotive.component';
 import '@babylonjs/loaders/glTF';
@@ -14,9 +14,9 @@ import { CarComponent } from './components/locomotive/car.component';
 import { DynamicTerrainComponent } from './components/dynamicTerrain.component';
 import { Inspector } from '@babylonjs/inspector';
 import { MapComponent } from './components/map.component';
+import { InitializationStatus } from './utils/types';
 
 export let scene: Scene;
-const trackHeight = 0.5;
 export const MAX_VIEW_DISTANCE = 300;
 
 export async function startGame() {
@@ -53,6 +53,7 @@ export async function startGame() {
     ecsEngine.update(engine.getDeltaTime() / 1000);
   });
 
+  // Track initialization might be moved to be part of the map system...dynamic terrain, trees, track, etc. are all interconected and depend on each other
   const trackSections = [
     's',
     's',
@@ -82,96 +83,18 @@ export async function startGame() {
     's',
   ];
   const trackComponent = createTrack(trackSections);
+  while (trackComponent.initializationStatus !== InitializationStatus.Initialized) {
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
   const dynamicTerrainComponent = makeDynamicTerrain(trackComponent.points);
   createLocomotive(trackComponent);
   makeMap(dynamicTerrainComponent);
 }
 
-function addCurveSection(points: Vector3[], turnDirection: 'left' | 'right', turnAngle: number): Vector3[] {
-  const currentPoint = points[points.length - 1];
-  // Calculate the direction of the last segment
-  let secondLastPoint = points[points.length - 2];
-  let lastDirection = currentPoint.subtract(secondLastPoint).normalize();
-
-  const initialAngle = Math.atan2(lastDirection.z, lastDirection.x);
-
-  const turnAngleRadians = (turnAngle * Math.PI) / 180;
-
-  // ratio of number of points to the turn angle is ~105:90
-  const ratio = 105 / 90;
-
-  const r = 30;
-  const curvePoints = Math.round(ratio * Math.abs(turnAngle));
-
-  let newPoints: Vector3[] = [];
-
-  for (let i = 1; i < curvePoints; i++) {
-    // Angle in radians for each point in the curve
-    let angle = turnAngleRadians * (i / curvePoints);
-    let dx = r * Math.sin(angle);
-    let dz = r * (1 - Math.cos(angle));
-
-    // flip the direction if turning right
-    if (turnDirection === 'left') {
-      dz = -dz;
-    }
-
-    // Rotate the offsets by the initial angle
-    let rotatedDx = dx * Math.cos(initialAngle) - dz * Math.sin(initialAngle);
-    let rotatedDz = dx * Math.sin(initialAngle) + dz * Math.cos(initialAngle);
-
-    let newPoint = currentPoint.add(new Vector3(rotatedDx, 0, rotatedDz));
-    newPoints.push(newPoint);
-  }
-
-  return newPoints;
-}
-
-function addStraightSection(points: Vector3[], n: number): Vector3[] {
-  let newPoints = [];
-  // First section
-  if (points.length === 0) {
-    for (let i = 0; i < n; i++) {
-      newPoints.push(new Vector3(i * 0.5, trackHeight, 0));
-    }
-  } else {
-    const currentPoint = points[points.length - 1];
-    // base the direction of the new section on the direction of the last segment
-    let secondLastPoint = points[points.length - 2];
-    let lastDirection = currentPoint.subtract(secondLastPoint).normalize();
-
-    // Create the new section
-    for (let i = 0; i < n; i++) {
-      newPoints.push(currentPoint.add(lastDirection.scale((i + 1) * 0.5)));
-    }
-  }
-  return newPoints;
-}
-
 function createTrack(trackSections: string[]): TrackComponent {
-  const points = [];
-  const n = 100;
-  let sections = [];
-
-  for (let trackSection of trackSections) {
-    const section = new Section(points.length);
-    if (trackSection === 'straight' || trackSection === 'w' || trackSection === 's') {
-      const newPoints = addStraightSection(points, n);
-      points.push(...newPoints);
-    } else if (trackSection === 'left' || trackSection === 'a' || trackSection === 'l') {
-      const newPoints = addCurveSection(points, 'left', 90);
-      points.push(...newPoints);
-    } else if (trackSection === 'right' || trackSection === 'd' || trackSection === 'r') {
-      const newPoints = addCurveSection(points, 'right', 90);
-      points.push(...newPoints);
-    } else {
-      console.error('Invalid track section');
-    }
-    sections.push(section);
-  }
   const ecsEngine = EcsEngine.getInstance();
   const entity = new Entity();
-  const trackComponent = new TrackComponent(points, sections);
+  const trackComponent = new TrackComponent(trackSections);
   entity.add(trackComponent);
   ecsEngine.addEntity(entity);
   return trackComponent;
