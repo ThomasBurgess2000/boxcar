@@ -4,6 +4,8 @@ Drive a train!
 
 You can always try the latest build here: https://thomasburgess2000.github.io/boxcar/.
 
+![image](https://github.com/ThomasBurgess2000/boxcar/assets/14812407/4969bde8-4864-492e-b2f5-e5f6c755922c)
+
 ## Build
 
 `bun build ./index.ts --outdir ./build --watch`
