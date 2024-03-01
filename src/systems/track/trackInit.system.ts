@@ -5,6 +5,8 @@ import { InitializationStatus } from '../../utils/types';
 import { RegisterSystem } from '../../startup/systemRegistration';
 import { scene } from '../../game';
 
+const TRACK_HEIGHT = 0.5;
+
 @RegisterSystem()
 export class TrackInitSystem extends IterativeSystem {
   public constructor() {
@@ -18,6 +20,10 @@ export class TrackInitSystem extends IterativeSystem {
     }
 
     trackComponent.initializationStatus = InitializationStatus.Initializing;
+    const trackComponentDefinition = trackComponent.trackDefinition;
+    const { points, sections } = this.createPointsAndSections(trackComponentDefinition);
+    trackComponent.points = points;
+    trackComponent.sections = sections;
     const track = this.createTrack(trackComponent.points, trackComponent.sections);
     this.createMeshes(track, trackComponent.points);
 
@@ -31,6 +37,91 @@ export class TrackInitSystem extends IterativeSystem {
     }
     const node = new TransformNode('trackParent');
     return node;
+  }
+
+  private createPointsAndSections(trackDefinition: string[]): { points: Vector3[]; sections: Section[] } {
+    const points = [];
+    const n = 100;
+    let sections: Section[] = [];
+
+    for (let trackSection of trackDefinition) {
+      const section = new Section(points.length);
+      if (trackSection === 'straight' || trackSection === 'w' || trackSection === 's') {
+        const newPoints = this.addStraightSection(points, n);
+        points.push(...newPoints);
+      } else if (trackSection === 'left' || trackSection === 'a' || trackSection === 'l') {
+        const newPoints = this.addCurveSection(points, 'left', 90);
+        points.push(...newPoints);
+      } else if (trackSection === 'right' || trackSection === 'd' || trackSection === 'r') {
+        const newPoints = this.addCurveSection(points, 'right', 90);
+        points.push(...newPoints);
+      } else {
+        console.error('Invalid track section');
+      }
+      sections.push(section);
+    }
+    return { points, sections };
+  }
+
+  private addCurveSection(points: Vector3[], turnDirection: 'left' | 'right', turnAngle: number): Vector3[] {
+    const currentPoint = points[points.length - 1];
+    // Calculate the direction of the last segment
+    let secondLastPoint = points[points.length - 2];
+    let lastDirection = currentPoint.subtract(secondLastPoint).normalize();
+
+    const initialAngle = Math.atan2(lastDirection.z, lastDirection.x);
+
+    const turnAngleRadians = (turnAngle * Math.PI) / 180;
+
+    // ratio of number of points to the turn angle is ~105:90
+    const ratio = 105 / 90;
+
+    const r = 30;
+    const curvePoints = Math.round(ratio * Math.abs(turnAngle));
+
+    let newPoints: Vector3[] = [];
+
+    for (let i = 1; i < curvePoints; i++) {
+      // Angle in radians for each point in the curve
+      let angle = turnAngleRadians * (i / curvePoints);
+      let dx = r * Math.sin(angle);
+      let dz = r * (1 - Math.cos(angle));
+
+      // flip the direction if turning right
+      if (turnDirection === 'left') {
+        dz = -dz;
+      }
+
+      // Rotate the offsets by the initial angle
+      let rotatedDx = dx * Math.cos(initialAngle) - dz * Math.sin(initialAngle);
+      let rotatedDz = dx * Math.sin(initialAngle) + dz * Math.cos(initialAngle);
+
+      let newPoint = currentPoint.add(new Vector3(rotatedDx, 0, rotatedDz));
+      newPoints.push(newPoint);
+    }
+
+    return newPoints;
+  }
+
+  private addStraightSection(points: Vector3[], n: number): Vector3[] {
+    let newPoints = [];
+    // First section
+    if (points.length === 0) {
+      for (let i = 0; i < n; i++) {
+        newPoints.push(new Vector3(i * 0.5, TRACK_HEIGHT, 0));
+      }
+    } else {
+      const currentPoint = points[points.length - 1];
+      // base the direction of the new section on the direction of the last segment
+      let secondLastPoint = points[points.length - 2];
+      let lastDirection = currentPoint.subtract(secondLastPoint).normalize();
+
+      // Create the new section
+      for (let i = 0; i < n; i++) {
+        newPoints.push(currentPoint.add(lastDirection.scale((i + 1) * 0.5)));
+      }
+    }
+    return newPoints;
   }
 
   private createTrack(points: Vector3[], sections: Section[]): TrackData {

@@ -6,7 +6,6 @@ import { PlacerComponent } from '../../../components/placer.component';
 import { DynamicTerrainComponent } from '../../../components/dynamicTerrain.component';
 import { PositionComponent } from '../../../components/babylonPrimitives/position.component';
 import { EcsEngine } from '../../../singletons/ecsEngine';
-import { Vector3 } from '@babylonjs/core';
 
 @RegisterSystem()
 export class TreePlacerSystem extends IterativeSystem {
@@ -27,11 +26,16 @@ export class TreePlacerSystem extends IterativeSystem {
       return;
     }
     entity.remove(PlacerComponent);
-    const normal = Vector3.Zero();
-    let height = dynamicTerrainComponent.dynamicTerrain?.getHeightFromMap(placerComponent.x, placerComponent.z, { normal: normal });
+    let height = dynamicTerrainComponent.dynamicTerrain?.getHeightFromMap(placerComponent.x, placerComponent.z);
     if (!height) {
       console.error('No height found for tree');
+      treeComponent.treeInstance?.dispose();
+      entity.remove(TreeComponent);
       return;
+    }
+    if (height < 0 || height > 35) {
+      treeComponent.treeInstance?.dispose();
+      entity.remove(TreeComponent);
     }
     const positionComponent = new PositionComponent({
       x: placerComponent.x,
