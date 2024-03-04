@@ -15,6 +15,7 @@ import { DynamicTerrainComponent } from './components/dynamicTerrain.component';
 import { Inspector } from '@babylonjs/inspector';
 import { MapComponent } from './components/map.component';
 import { InitializationStatus } from './utils/types';
+import HavokPhysics from '@babylonjs/havok';
 
 export let scene: Scene;
 export const MAX_VIEW_DISTANCE = 300;
@@ -89,6 +90,10 @@ export async function startGame() {
   const dynamicTerrainComponent = makeDynamicTerrain(trackComponent.points);
   createLocomotive(trackComponent);
   makeMap(dynamicTerrainComponent);
+
+  const havokInstance = await HavokPhysics();
+  const havokPlugin = new HavokPlugin(true, havokInstance);
+  scene.enablePhysics(new Vector3(0, -9.81, 0), havokPlugin);
 }
 
 function createTrack(trackSections: string[]): TrackComponent {
