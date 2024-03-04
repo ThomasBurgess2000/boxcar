@@ -6,3 +6,4 @@ export * from './keys.system';
 export * from './terrain/dynamicTerrainInit.system';
 export * from './terrain/tree';
 export * from './mapInit.system';
+export * from './player';

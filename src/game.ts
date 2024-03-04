@@ -16,6 +16,7 @@ import { Inspector } from '@babylonjs/inspector';
 import { MapComponent } from './components/map.component';
 import { InitializationStatus } from './utils/types';
 import HavokPhysics from '@babylonjs/havok';
+import { PlayerCapsuleComponent } from './components/player/playerCapsule.component';
 
 export let scene: Scene;
 export const MAX_VIEW_DISTANCE = 300;
@@ -47,6 +48,10 @@ export async function startGame() {
   engine.runRenderLoop(() => {
     scene.render();
   });
+
+  const havokInstance = await HavokPhysics();
+  const havokPlugin = new HavokPlugin(true, havokInstance);
+  scene.enablePhysics(new Vector3(0, -9.81, 0), havokPlugin);
 
   const ecsEngine = EcsEngine.getInstance();
   await initSystems();
@@ -91,9 +96,7 @@ export async function startGame() {
   createLocomotive(trackComponent);
   makeMap(dynamicTerrainComponent);
 
-  const havokInstance = await HavokPhysics();
-  const havokPlugin = new HavokPlugin(true, havokInstance);
-  scene.enablePhysics(new Vector3(0, -9.81, 0), havokPlugin);
+  createPlayer();
 }
 
 function createTrack(trackSections: string[]): TrackComponent {
@@ -137,4 +140,12 @@ function makeMap(dynamicTerrainComponent: DynamicTerrainComponent) {
   const mapComponent = new MapComponent(dynamicTerrainComponent, true);
   mapEntity.add(mapComponent);
   ecsEngine.addEntity(mapEntity);
+}
+
+function createPlayer() {
+  const ecsEngine = EcsEngine.getInstance();
+  const playerEntity = new Entity();
+  const playerCapsuleComponent = new PlayerCapsuleComponent();
+  playerEntity.add(playerCapsuleComponent);
+  ecsEngine.addEntity(playerEntity);
 }

@@ -8,6 +8,9 @@ import { NoiseFunction2D, createNoise2D } from 'simplex-noise';
 import { InitializationStatus } from '../../utils/types';
 import {
   Engine,
+  PhysicsAggregate,
+  PhysicsMotionType,
+  PhysicsShapeType,
   RawTexture,
   ShaderLanguage,
   ShaderMaterial,
