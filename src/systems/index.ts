@@ -7,3 +7,4 @@ export * from './terrain/dynamicTerrainInit.system';
 export * from './terrain/tree';
 export * from './mapInit.system';
 export * from './player';
+export * from './terrain/dynamicTerrainCollider.system';

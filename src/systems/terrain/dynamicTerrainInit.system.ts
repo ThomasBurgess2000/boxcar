@@ -6,19 +6,7 @@ import { MAX_VIEW_DISTANCE, scene } from '../../game';
 import alea from 'alea';
 import { NoiseFunction2D, createNoise2D } from 'simplex-noise';
 import { InitializationStatus } from '../../utils/types';
-import {
-  Engine,
-  PhysicsAggregate,
-  PhysicsMotionType,
-  PhysicsShapeType,
-  RawTexture,
-  ShaderLanguage,
-  ShaderMaterial,
-  ShaderStore,
-  Texture,
-  UniversalCamera,
-  Vector3,
-} from '@babylonjs/core';
+import { Engine, RawTexture, ShaderLanguage, ShaderMaterial, ShaderStore, Texture, UniversalCamera, Vector3 } from '@babylonjs/core';
 import { loadShader } from '../../utils/loadShaders';
 
 @RegisterSystem()
@@ -50,7 +38,7 @@ export class DynamicTerrainInitSystem extends IterativeSystem {
       mapData: mapData,
       mapSubX: dynamicTerrainComponent.mapSubX,
       mapSubZ: dynamicTerrainComponent.mapSubZ,
-      terrainSub: MAX_VIEW_DISTANCE * 2,
+      terrainSub: MAX_VIEW_DISTANCE,
     };
     const terrain = new DynamicTerrain('dynamicTerrain', mapParams, scene);
     dynamicTerrainComponent.dynamicTerrain = terrain;

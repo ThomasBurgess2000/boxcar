@@ -27,6 +27,7 @@ You can always try the latest build here: https://thomasburgess2000.github.io/bo
 - [ ] Make fog work with dynamic terrain shader
 - [ ] Make chunked physics colliders for terrain (cannot be attached to terrain mesh directly otherwise it cannot move when the camera moves)
 - [ ] Make displacement map for terrain (does this require more detailed dynamic terrain?)
+- [ ] figure out why startup is taking so long
 - [x] Clean up game.ts
 - [x] Make larger map
 - [x] Clean up dynamic terrain system (move params to component)

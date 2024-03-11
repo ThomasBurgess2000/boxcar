@@ -2,7 +2,7 @@
 /// <reference lib="dom.iterable" />
 
 import { initSystems } from './startup/systemRegistration';
-import { ArcRotateCamera, Color3, Color4, Engine, HavokPlugin, HemisphericLight, Scene, Vector3 } from '@babylonjs/core';
+import { ArcRotateCamera, Color3, Color4, Engine, HavokPlugin, HemisphericLight, Scene, UniversalCamera, Vector3 } from '@babylonjs/core';
 import { EcsEngine } from './singletons/ecsEngine';
 import { TrackComponent } from './components/track.component';
 import { Entity } from 'tick-knock';
@@ -19,7 +19,7 @@ import HavokPhysics from '@babylonjs/havok';
 import { PlayerCapsuleComponent } from './components/player/playerCapsule.component';
 
 export let scene: Scene;
-export const MAX_VIEW_DISTANCE = 300;
+export const MAX_VIEW_DISTANCE = 150;
 
 export async function startGame() {
   // Create canvas and engine
@@ -38,10 +38,13 @@ export async function startGame() {
   scene.fogEnd = 500;
   Inspector.Show(scene, {});
 
+  // const camera = new UniversalCamera('camera', new Vector3(0, 0, 0), scene);
   const camera = new ArcRotateCamera('camera', 9.44, 1.575, 0.1, new Vector3(0, 0, 0), scene);
-  camera.upperRadiusLimit = 34;
+  // camera.upperRadiusLimit = 34;
+  camera.upperRadiusLimit = 500;
   camera.lowerRadiusLimit = 0;
-  camera.maxZ = MAX_VIEW_DISTANCE;
+  // camera.maxZ = MAX_VIEW_DISTANCE;
+  camera.maxZ = 500;
   camera.attachControl(canvas, true);
   const light = new HemisphericLight('light', new Vector3(0, 1, 0), scene);
 
