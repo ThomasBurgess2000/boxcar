@@ -2,7 +2,7 @@
 /// <reference lib="dom.iterable" />
 
 import { initSystems } from './startup/systemRegistration';
-import { ArcRotateCamera, Color3, Color4, Engine, HavokPlugin, HemisphericLight, Scene, Vector3 } from '@babylonjs/core';
+import { ArcRotateCamera, Color3, Color4, Engine, HavokPlugin, HemisphericLight, Scene, UniversalCamera, Vector3 } from '@babylonjs/core';
 import { EcsEngine } from './singletons/ecsEngine';
 import { TrackComponent } from './components/track.component';
 import { Entity } from 'tick-knock';
@@ -15,6 +15,8 @@ import { DynamicTerrainComponent } from './components/dynamicTerrain.component';
 import { Inspector } from '@babylonjs/inspector';
 import { MapComponent } from './components/map.component';
 import { InitializationStatus } from './utils/types';
+import HavokPhysics from '@babylonjs/havok';
+import { PlayerCapsuleComponent } from './components/player/playerCapsule.component';
 
 export let scene: Scene;
 export const MAX_VIEW_DISTANCE = 300;
@@ -36,8 +38,9 @@ export async function startGame() {
   scene.fogEnd = 500;
   Inspector.Show(scene, {});
 
+  // const camera = new UniversalCamera('camera', new Vector3(0, 0, 0), scene);
   const camera = new ArcRotateCamera('camera', 9.44, 1.575, 0.1, new Vector3(0, 0, 0), scene);
-  camera.upperRadiusLimit = 34;
+  camera.upperRadiusLimit = 500;
   camera.lowerRadiusLimit = 0;
   camera.maxZ = MAX_VIEW_DISTANCE;
   camera.attachControl(canvas, true);
@@ -46,6 +49,10 @@ export async function startGame() {
   engine.runRenderLoop(() => {
     scene.render();
   });
+
+  const havokInstance = await HavokPhysics();
+  const havokPlugin = new HavokPlugin(true, havokInstance);
+  scene.enablePhysics(new Vector3(0, -9.81, 0), havokPlugin);
 
   const ecsEngine = EcsEngine.getInstance();
   await initSystems();
@@ -89,6 +96,8 @@ export async function startGame() {
   const dynamicTerrainComponent = makeDynamicTerrain(trackComponent.points);
   createLocomotive(trackComponent);
   makeMap(dynamicTerrainComponent);
+
+  createPlayer();
 }
 
 function createTrack(trackSections: string[]): TrackComponent {
@@ -132,4 +141,12 @@ function makeMap(dynamicTerrainComponent: DynamicTerrainComponent) {
   const mapComponent = new MapComponent(dynamicTerrainComponent, true);
   mapEntity.add(mapComponent);
   ecsEngine.addEntity(mapEntity);
+}
+
+function createPlayer() {
+  const ecsEngine = EcsEngine.getInstance();
+  const playerEntity = new Entity();
+  const playerCapsuleComponent = new PlayerCapsuleComponent();
+  playerEntity.add(playerCapsuleComponent);
+  ecsEngine.addEntity(playerEntity);
 }

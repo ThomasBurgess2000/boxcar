@@ -6,16 +6,7 @@ import { MAX_VIEW_DISTANCE, scene } from '../../game';
 import alea from 'alea';
 import { NoiseFunction2D, createNoise2D } from 'simplex-noise';
 import { InitializationStatus } from '../../utils/types';
-import {
-  Engine,
-  RawTexture,
-  ShaderLanguage,
-  ShaderMaterial,
-  ShaderStore,
-  Texture,
-  UniversalCamera,
-  Vector3,
-} from '@babylonjs/core';
+import { Engine, RawTexture, ShaderLanguage, ShaderMaterial, ShaderStore, Texture, UniversalCamera, Vector3 } from '@babylonjs/core';
 import { loadShader } from '../../utils/loadShaders';
 
 @RegisterSystem()
@@ -47,14 +38,14 @@ export class DynamicTerrainInitSystem extends IterativeSystem {
       mapData: mapData,
       mapSubX: dynamicTerrainComponent.mapSubX,
       mapSubZ: dynamicTerrainComponent.mapSubZ,
-      terrainSub: MAX_VIEW_DISTANCE * 2,
+      terrainSub: MAX_VIEW_DISTANCE,
     };
     const terrain = new DynamicTerrain('dynamicTerrain', mapParams, scene);
     dynamicTerrainComponent.dynamicTerrain = terrain;
 
     const noiseTexture = this.makeTexture(dynamicTerrainComponent, noise2D);
-
-    const terrainShaderMaterial = await this.makeShaders(noiseTexture);
+    const normalMap = new Texture('assets/textures/Stylized_Grass_002_normal.jpg', scene);
+    const terrainShaderMaterial = await this.makeShaders(noiseTexture, normalMap);
     dynamicTerrainComponent.dynamicTerrain.mesh.material = terrainShaderMaterial;
 
     dynamicTerrainComponent.dynamicTerrain.mesh.isPickable = false;
@@ -165,7 +156,7 @@ export class DynamicTerrainInitSystem extends IterativeSystem {
     return noiseTexture;
   }
 
-  protected async makeShaders(noiseTexture: RawTexture): Promise<ShaderMaterial> {
+  protected async makeShaders(noiseTexture: RawTexture, normalMap: Texture): Promise<ShaderMaterial> {
     const vertexShader = await loadShader('assets/shaders/terrain/terrainVertexShader.glsl');
     const fragmentShader = await loadShader('assets/shaders/terrain/terrainFragmentShader.glsl');
 
@@ -181,17 +172,28 @@ export class DynamicTerrainInitSystem extends IterativeSystem {
       },
       {
         attributes: ['position', 'normal', 'uv'],
-        uniforms: ['worldViewProjection', 'lowestPoint', 'highestPoint', 'seaLevel', 'mountainLevel'],
+        uniforms: [
+          'worldViewProjection',
+          'lowestPoint',
+          'highestPoint',
+          'seaLevel',
+          'mountainLevel',
+          'noiseTexture',
+          'normalMap',
+          'grassTexture',
+        ],
         uniformBuffers: undefined,
         shaderLanguage: ShaderLanguage.GLSL,
       },
     );
     terrainShaderMaterial.setTexture('noiseTexture', noiseTexture);
+    terrainShaderMaterial.setTexture('normalMap', normalMap);
 
     terrainShaderMaterial.setFloat('lowestPoint', -32);
     terrainShaderMaterial.setFloat('highestPoint', 43);
     terrainShaderMaterial.setFloat('seaLevel', -1);
     terrainShaderMaterial.setFloat('mountainLevel', 38);
+    terrainShaderMaterial.setFloat('displacementScale', 2.0);
     return terrainShaderMaterial;
   }
 
