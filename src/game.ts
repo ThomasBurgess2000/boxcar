@@ -19,7 +19,7 @@ import HavokPhysics from '@babylonjs/havok';
 import { PlayerCapsuleComponent } from './components/player/playerCapsule.component';
 
 export let scene: Scene;
-export const MAX_VIEW_DISTANCE = 150;
+export const MAX_VIEW_DISTANCE = 300;
 
 export async function startGame() {
   // Create canvas and engine
@@ -40,11 +40,9 @@ export async function startGame() {
 
   // const camera = new UniversalCamera('camera', new Vector3(0, 0, 0), scene);
   const camera = new ArcRotateCamera('camera', 9.44, 1.575, 0.1, new Vector3(0, 0, 0), scene);
-  // camera.upperRadiusLimit = 34;
   camera.upperRadiusLimit = 500;
   camera.lowerRadiusLimit = 0;
-  // camera.maxZ = MAX_VIEW_DISTANCE;
-  camera.maxZ = 500;
+  camera.maxZ = MAX_VIEW_DISTANCE;
   camera.attachControl(canvas, true);
   const light = new HemisphericLight('light', new Vector3(0, 1, 0), scene);
 
