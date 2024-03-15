@@ -5,8 +5,8 @@ import { InitializationStatus } from '../../utils/types';
 import { Mesh, PhysicsAggregate, PhysicsShapeType, PhysicsViewer, Vector3, VertexBuffer, VertexData } from '@babylonjs/core';
 import { scene } from '../../game';
 
-const DIAMETER_OF_PHYSICS_AGGREGATE = 30;
-const DISTANCE_TO_EDGE = 1;
+const DIAMETER_OF_PHYSICS_AGGREGATE = 100;
+const DISTANCE_TO_EDGE = 70;
 
 @RegisterSystem()
 export class DynamicTerrainColliderSystem extends IterativeSystem {
@@ -28,12 +28,11 @@ export class DynamicTerrainColliderSystem extends IterativeSystem {
       return;
     }
 
-    // Normally the locomotive will not be used to get the player position, but I haven't made the player yet
-    const locomotive = scene.getMeshByName('locomotive');
-    if (!locomotive) {
+    const playerCapsule = scene.getMeshByName('player-capsule');
+    if (!playerCapsule) {
       return;
     }
-    const playerPosition = locomotive.getAbsolutePosition();
+    const playerPosition = playerCapsule.getAbsolutePosition();
 
     if (!dynamicTerrainComponent.physicsMesh && !dynamicTerrainComponent.physicsAggregateInitializing) {
       dynamicTerrainComponent.physicsAggregateInitializing = true;
@@ -53,7 +52,7 @@ export class DynamicTerrainColliderSystem extends IterativeSystem {
       }
 
       const distance = xzPlaneDistance(playerPosition, center);
-      if (distance > DIAMETER_OF_PHYSICS_AGGREGATE / 2 - DISTANCE_TO_EDGE) {
+      if (distance > DISTANCE_TO_EDGE) {
         dynamicTerrainComponent.physicsAggregateInitializing = true;
         const previousPhysicsMesh = dynamicTerrainComponent.physicsMesh;
         const result = this.createPhysicsAggregate(terrainMesh, playerPosition, DIAMETER_OF_PHYSICS_AGGREGATE);

@@ -43,7 +43,16 @@ export async function startGame() {
   camera.upperRadiusLimit = 500;
   camera.lowerRadiusLimit = 0;
   camera.maxZ = MAX_VIEW_DISTANCE;
+  camera.lowerBetaLimit = 1.3;
+  camera.upperBetaLimit = 1.56;
   camera.attachControl(canvas, true);
+
+  canvas.onclick = () => {
+    canvas.requestPointerLock = canvas.requestPointerLock || canvas.mozRequestPointerLock || canvas.webkitRequestPointerLock;
+
+    canvas.requestPointerLock();
+  };
+
   const light = new HemisphericLight('light', new Vector3(0, 1, 0), scene);
 
   engine.runRenderLoop(() => {
@@ -120,8 +129,6 @@ function createLocomotive(trackComponent: TrackComponent) {
   entity.append(car2);
   const locomotiveInputComponent = new LocomotiveInputComponent();
   entity.add(locomotiveInputComponent);
-  const keysComponent = new KeysComponent();
-  entity.add(keysComponent);
   entity.add(trackComponent);
   ecsEngine.addEntity(entity);
 }
@@ -148,5 +155,7 @@ function createPlayer() {
   const playerEntity = new Entity();
   const playerCapsuleComponent = new PlayerCapsuleComponent();
   playerEntity.add(playerCapsuleComponent);
+  const keysComponent = new KeysComponent();
+  playerEntity.add(keysComponent);
   ecsEngine.addEntity(playerEntity);
 }

@@ -21,7 +21,6 @@ export class LocomotiveInitSystem extends IterativeSystem {
     }
     locomotiveComponent.initializationStatus = InitializationStatus.Initializing;
     const mesh = this.createMesh(locomotiveComponent);
-    (scene.activeCamera as ArcRotateCamera).parent = mesh;
     locomotiveComponent.mesh = mesh;
     locomotiveComponent.initializationStatus = InitializationStatus.Initialized;
   }
