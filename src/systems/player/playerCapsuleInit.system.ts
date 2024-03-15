@@ -20,7 +20,6 @@ export class PlayerCapsuleInitSystem extends IterativeSystem {
     playerCapsuleComponent.initalizationStatus = InitializationStatus.Initializing;
     const mesh = this.createMesh();
     this.attachPhysics(mesh);
-    // this.attachCamera(mesh);
     playerCapsuleComponent.mesh = mesh;
     playerCapsuleComponent.initalizationStatus = InitializationStatus.Initialized;
   }
@@ -44,9 +43,5 @@ export class PlayerCapsuleInitSystem extends IterativeSystem {
       inertia: new Vector3(0, 0, 0),
     });
     capsuleAggregate.body.setAngularDamping(100);
-  }
-
-  private attachCamera(mesh: Mesh) {
-    (scene.activeCamera as ArcRotateCamera).setTarget(mesh);
   }
 }
