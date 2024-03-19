@@ -32,8 +32,8 @@ export class PlayerCapsuleInitSystem extends IterativeSystem {
     boxIndicatingDirection.position = new Vector3(0, 0.5, -0.5);
 
     // TODO: move to camera component/system
-    const cameraCapsule = MeshBuilder.CreateCapsule('camera-capsule', { radius: 0.5, height: 1.5 });
-    (scene.activeCamera as ArcRotateCamera).parent = cameraCapsule;
+    // const cameraCapsule = MeshBuilder.CreateCapsule('camera-capsule', { radius: 0.5, height: 1.5 });
+    // (scene.activeCamera as ArcRotateCamera).parent = cameraCapsule;
     return capsule;
   }
 

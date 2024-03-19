@@ -7,6 +7,7 @@ import { Quaternion, Vector3 } from '@babylonjs/core';
 import { Direction, LocomotiveInputComponent } from '../../components/locomotive/locomotiveInput.component';
 
 export const HEIGHT_ABOVE_TRACK = 1.5;
+const LEAD_TRUCK_Z_OFFSET = -5.325;
 
 @RegisterSystem()
 export class LocomotiveSystem extends IterativeSystem {
@@ -20,13 +21,15 @@ export class LocomotiveSystem extends IterativeSystem {
     const locomotiveInputComponent = entity.get(LocomotiveInputComponent)!;
     if (
       locomotiveComponent.initializationStatus !== InitializationStatus.Initialized ||
-      !locomotiveComponent.mesh ||
+      !locomotiveComponent.bodyMesh ||
       trackComponent.initializationStatus !== InitializationStatus.Initialized
     ) {
       return;
     }
     this.setSpeed(locomotiveComponent, locomotiveInputComponent, dt);
-    this.updatePositionOnTrack(locomotiveComponent, trackComponent, dt);
+    if (locomotiveComponent.speed !== 0) {
+      this.updatePositionOnTrack(locomotiveComponent, trackComponent, dt);
+    }
   }
 
   private setSpeed(locomotiveComponent: LocomotiveComponent, locomotiveInputComponent: LocomotiveInputComponent, dt: number) {
@@ -58,6 +61,7 @@ export class LocomotiveSystem extends IterativeSystem {
     const newPositionOnTrack = (positionOnTrack + locomotiveComponent.speed * dt) % trackLength;
     locomotiveComponent.positionOnTrack = newPositionOnTrack >= 0 ? newPositionOnTrack : newPositionOnTrack + trackLength;
 
+    // LOCOMOTIVE BODY POSITION AND ROTATION
     const currentIndex = Math.floor(positionOnTrack);
     const nextIndex = (currentIndex + 1) % trackLength;
 
@@ -73,10 +77,59 @@ export class LocomotiveSystem extends IterativeSystem {
 
     const currentRotation = trackComponent.rotations[currentIndex];
     const nextRotation = trackComponent.rotations[nextIndex];
-    const interpolatedRotation = Quaternion.Slerp(currentRotation, nextRotation, interpolationFactor);
+    const locomotiveInterpolatedRotation = Quaternion.Slerp(currentRotation, nextRotation, interpolationFactor);
+    // Add 90 degrees to the rotation so that the locomotive faces the direction of the track
+    locomotiveInterpolatedRotation.multiplyInPlace(Quaternion.RotationAxis(new Vector3(0, 1, 0), -Math.PI / 2));
+    const locomotiveMesh = locomotiveComponent.bodyMesh!;
+    locomotiveMesh.position = new Vector3(interpolatedPosition.x, interpolatedPosition.y - 1.98, interpolatedPosition.z);
+    locomotiveMesh.rotationQuaternion = locomotiveInterpolatedRotation;
 
-    const locomotiveMesh = locomotiveComponent.mesh!;
-    locomotiveMesh.position = new Vector3(interpolatedPosition.x, interpolatedPosition.y, interpolatedPosition.z);
-    locomotiveMesh.rotationQuaternion = interpolatedRotation;
+    // FRONT WHEEL RELATIVE POSITION AND ROTATION
+    if (!locomotiveComponent.frontWheelsMesh) {
+      return;
+    }
+    const frontWheelsMesh = locomotiveComponent.frontWheelsMesh;
+    const currentWheelIndex = currentIndex + 10;
+    const nextWheelIndex = (currentWheelIndex + 1) % trackLength;
+
+    const currentWheelRotation = trackComponent.rotations[currentWheelIndex];
+    const nextWheelRotation = trackComponent.rotations[nextWheelIndex];
+
+    const wheelInterpolatedRotation = Quaternion.Slerp(currentWheelRotation, nextWheelRotation, interpolationFactor);
+    const relativeWheelRotation = wheelInterpolatedRotation.multiply(Quaternion.Inverse(locomotiveInterpolatedRotation));
+    relativeWheelRotation.multiplyInPlace(Quaternion.RotationAxis(new Vector3(0, 1, 0), -Math.PI / 2));
+    frontWheelsMesh.rotationQuaternion = relativeWheelRotation;
+
+    const currentWheelAngle = currentWheelRotation.toEulerAngles().y;
+    const nextWheelAngle = nextWheelRotation.toEulerAngles().y;
+    let wheelAngleDifference = nextWheelAngle - currentWheelAngle;
+
+    const currentLocomotiveAngle = currentRotation.toEulerAngles().y;
+    const nextLocomotiveAngle = nextRotation.toEulerAngles().y;
+    let locomotiveAngleDifference = nextLocomotiveAngle - currentLocomotiveAngle;
+
+    // Normalize the angle difference to the range (-PI, PI]
+    wheelAngleDifference = ((wheelAngleDifference + Math.PI) % (2 * Math.PI)) - Math.PI;
+    const angleInDegrees = (currentWheelAngle * 180) / Math.PI;
+    console.log('Angle in degrees: ', angleInDegrees);
+    console.log('Wheel angle difference: ', wheelAngleDifference);
+    console.log('Locomotive angle difference: ', locomotiveAngleDifference);
+    const maxOffset = 0.5; // Maximum lateral offset
+    const maxTurnAngle = 9; // Maximum turn angle in degrees for full offset
+    if (wheelAngleDifference > 0 || locomotiveAngleDifference > 0) {
+      console.log('Turning left');
+
+      const scaledOffset = maxOffset * Math.min(angleInDegrees / maxTurnAngle, 1);
+      frontWheelsMesh.position.x = -scaledOffset;
+    } else if (wheelAngleDifference < 0 || locomotiveAngleDifference < 0) {
+      console.log('Turning right');
+      const maxOffset = -0.5; // Maximum lateral offset
+      const maxTurnAngle = -9; // Maximum turn angle in degrees for full offset
+      const scaledOffset = maxOffset * Math.min(angleInDegrees / maxTurnAngle, 1);
+      frontWheelsMesh.position.x = scaledOffset;
+    } else {
+      console.log('Straight');
+      frontWheelsMesh.position.x = 0;
+    }
   }
 }

@@ -70,41 +70,14 @@ export async function startGame() {
   });
 
   // Track initialization might be moved to be part of the map system...dynamic terrain, trees, track, etc. are all interconected and depend on each other
-  const trackSections = [
-    's',
-    's',
-    's',
-    's',
-    's',
-    'l',
-    's',
-    'r',
-    's',
-    's',
-    's',
-    's',
-    'r',
-    's',
-    'l',
-    'l',
-    's',
-    'r',
-    's',
-    'r',
-    's',
-    's',
-    'l',
-    's',
-    's',
-    's',
-  ];
+  const trackSections = ['s', 'l', 's', 'r', 's', 's', 's', 's', 'r', 's', 'l', 'l', 's', 'r', 's', 'r', 's', 's', 'l', 's', 's', 's'];
   const trackComponent = createTrack(trackSections);
   while (trackComponent.initializationStatus !== InitializationStatus.Initialized) {
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
-  const dynamicTerrainComponent = makeDynamicTerrain(trackComponent.points);
+  // const dynamicTerrainComponent = makeDynamicTerrain(trackComponent.points);
   createLocomotive(trackComponent);
-  makeMap(dynamicTerrainComponent);
+  // makeMap(dynamicTerrainComponent);
 
   createPlayer();
 }
@@ -129,6 +102,8 @@ function createLocomotive(trackComponent: TrackComponent) {
   entity.append(car2);
   const locomotiveInputComponent = new LocomotiveInputComponent();
   entity.add(locomotiveInputComponent);
+  const keysComponent = new KeysComponent();
+  entity.add(keysComponent);
   entity.add(trackComponent);
   ecsEngine.addEntity(entity);
 }
@@ -155,7 +130,7 @@ function createPlayer() {
   const playerEntity = new Entity();
   const playerCapsuleComponent = new PlayerCapsuleComponent();
   playerEntity.add(playerCapsuleComponent);
-  const keysComponent = new KeysComponent();
-  playerEntity.add(keysComponent);
+  // const keysComponent = new KeysComponent();
+  // playerEntity.add(keysComponent);
   ecsEngine.addEntity(playerEntity);
 }

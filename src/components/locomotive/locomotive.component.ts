@@ -3,7 +3,8 @@ import { InitializationStatus } from '../../utils/types';
 
 export class LocomotiveComponent {
   public initializationStatus: InitializationStatus = InitializationStatus.NotInitialized;
-  public mesh: Nullable<Mesh> = null;
+  public bodyMesh: Nullable<Mesh> = null;
+  public frontWheelsMesh: Nullable<Mesh> = null;
   public positionOnTrack: number = 0;
   // public speed: number = 26.8224;
   public speed: number = 0;
