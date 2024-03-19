@@ -24,7 +24,7 @@ export class MapInitSystem extends IterativeSystem {
   }
 
   private createMap(mapComponent: MapComponent): void {
-    this.placeTrees(mapComponent);
+    // this.placeTrees(mapComponent);
   }
 
   private placeTrees(mapComponent: MapComponent): void {

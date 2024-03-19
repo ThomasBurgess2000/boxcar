@@ -75,9 +75,9 @@ export async function startGame() {
   while (trackComponent.initializationStatus !== InitializationStatus.Initialized) {
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
-  // const dynamicTerrainComponent = makeDynamicTerrain(trackComponent.points);
+  const dynamicTerrainComponent = makeDynamicTerrain(trackComponent.points);
   createLocomotive(trackComponent);
-  // makeMap(dynamicTerrainComponent);
+  makeMap(dynamicTerrainComponent);
 
   createPlayer();
 }

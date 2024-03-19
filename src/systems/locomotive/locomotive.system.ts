@@ -81,7 +81,7 @@ export class LocomotiveSystem extends IterativeSystem {
     // Add 90 degrees to the rotation so that the locomotive faces the direction of the track
     locomotiveInterpolatedRotation.multiplyInPlace(Quaternion.RotationAxis(new Vector3(0, 1, 0), -Math.PI / 2));
     const locomotiveMesh = locomotiveComponent.bodyMesh!;
-    locomotiveMesh.position = new Vector3(interpolatedPosition.x, interpolatedPosition.y - 1.98, interpolatedPosition.z);
+    locomotiveMesh.position = new Vector3(interpolatedPosition.x, interpolatedPosition.y - 1.9, interpolatedPosition.z);
     locomotiveMesh.rotationQuaternion = locomotiveInterpolatedRotation;
 
     // FRONT WHEEL RELATIVE POSITION AND ROTATION
@@ -110,23 +110,21 @@ export class LocomotiveSystem extends IterativeSystem {
 
     // Normalize the angle difference to the range (-PI, PI]
     wheelAngleDifference = ((wheelAngleDifference + Math.PI) % (2 * Math.PI)) - Math.PI;
-    const angleInDegrees = (currentWheelAngle * 180) / Math.PI;
+    const angleInDegrees = (relativeWheelRotation.y * 180) / Math.PI;
     console.log('Angle in degrees: ', angleInDegrees);
     console.log('Wheel angle difference: ', wheelAngleDifference);
     console.log('Locomotive angle difference: ', locomotiveAngleDifference);
-    const maxOffset = 0.5; // Maximum lateral offset
-    const maxTurnAngle = 9; // Maximum turn angle in degrees for full offset
+    const maxOffset = 0.5;
+    const maxTurnAngle = 4.28;
+
     if (wheelAngleDifference > 0 || locomotiveAngleDifference > 0) {
       console.log('Turning left');
-
       const scaledOffset = maxOffset * Math.min(angleInDegrees / maxTurnAngle, 1);
       frontWheelsMesh.position.x = -scaledOffset;
     } else if (wheelAngleDifference < 0 || locomotiveAngleDifference < 0) {
       console.log('Turning right');
-      const maxOffset = -0.5; // Maximum lateral offset
-      const maxTurnAngle = -9; // Maximum turn angle in degrees for full offset
-      const scaledOffset = maxOffset * Math.min(angleInDegrees / maxTurnAngle, 1);
-      frontWheelsMesh.position.x = scaledOffset;
+      const scaledOffset = -maxOffset * Math.min(angleInDegrees / -maxTurnAngle, 1);
+      frontWheelsMesh.position.x = -scaledOffset;
     } else {
       console.log('Straight');
       frontWheelsMesh.position.x = 0;
