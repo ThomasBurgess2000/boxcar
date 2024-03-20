@@ -82,6 +82,9 @@ export class LocomotiveSystem extends IterativeSystem {
 
     const currentRotation = trackComponent.rotations[currentIndex];
     const nextRotation = trackComponent.rotations[nextIndex];
+    if (!currentRotation || !nextRotation) {
+      return;
+    }
     const locomotiveInterpolatedRotation = Quaternion.Slerp(currentRotation, nextRotation, interpolationFactor);
     // Add 90 degrees to the rotation so that the locomotive faces the direction of the track
     locomotiveInterpolatedRotation.multiplyInPlace(Quaternion.RotationAxis(new Vector3(0, 1, 0), -Math.PI / 2));
@@ -99,7 +102,9 @@ export class LocomotiveSystem extends IterativeSystem {
 
     const currentWheelRotation = trackComponent.rotations[currentWheelIndex];
     const nextWheelRotation = trackComponent.rotations[nextWheelIndex];
-
+    if (!currentWheelRotation || !nextWheelRotation) {
+      return;
+    }
     const wheelInterpolatedRotation = Quaternion.Slerp(currentWheelRotation, nextWheelRotation, interpolationFactor);
     const relativeWheelRotation = wheelInterpolatedRotation.multiply(Quaternion.Inverse(locomotiveInterpolatedRotation));
     relativeWheelRotation.multiplyInPlace(Quaternion.RotationAxis(new Vector3(0, 1, 0), -Math.PI / 2));
@@ -131,7 +136,6 @@ export class LocomotiveSystem extends IterativeSystem {
   }
 
   private updateDriverAnimationSpeedRatio(locomotiveComponent: LocomotiveComponent) {
-    console.log('updateDriverAnimationSpeedRatio');
     const driver = locomotiveComponent.driverMesh;
     if (!driver) {
       throw new Error('Driver mesh not found');

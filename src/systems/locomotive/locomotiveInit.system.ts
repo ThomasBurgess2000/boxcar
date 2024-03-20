@@ -30,6 +30,7 @@ export class LocomotiveInitSystem extends IterativeSystem {
       const mesh = result.meshes[0] as Mesh;
       mesh.name = 'locomotive';
       (scene.activeCamera as ArcRotateCamera).parent = mesh;
+      (scene.activeCamera as ArcRotateCamera).target = new Vector3(0, 3, -9);
       const material = new StandardMaterial('locomotive-material');
       material.diffuseColor = new Color3(0.5, 0.5, 0.5);
       mesh.material = material;
@@ -53,7 +54,7 @@ export class LocomotiveInitSystem extends IterativeSystem {
       if (!armature) {
         throw new Error('Armature not found');
       }
-      
+
       driver.scaling = new Vector3(0.75, 0.75, 0.75);
       driver.name = 'driver';
       driver.parent = loc.bodyMesh;
