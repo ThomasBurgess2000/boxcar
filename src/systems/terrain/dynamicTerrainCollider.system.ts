@@ -10,10 +10,10 @@ const DISTANCE_TO_EDGE = 70;
 
 @RegisterSystem()
 export class DynamicTerrainColliderSystem extends IterativeSystem {
-  private _physicsViewer: PhysicsViewer;
+  // private _physicsViewer: PhysicsViewer;
   public constructor() {
     super((entity: Entity) => entity.hasComponent(DynamicTerrainComponent));
-    this._physicsViewer = new PhysicsViewer();
+    // this._physicsViewer = new PhysicsViewer();
   }
 
   protected async updateEntity(entity: Entity): Promise<void> {
@@ -58,7 +58,7 @@ export class DynamicTerrainColliderSystem extends IterativeSystem {
         const result = this.createPhysicsAggregate(terrainMesh, playerPosition, DIAMETER_OF_PHYSICS_AGGREGATE);
         dynamicTerrainComponent.physicsMesh = result.physicsMeshClone;
         dynamicTerrainComponent.currentPhysicsCenter = result.centerPosition;
-        this._physicsViewer.hideBody(previousPhysicsMesh?.physicsBody!);
+        // this._physicsViewer.hideBody(previousPhysicsMesh?.physicsBody!);
         previousPhysicsMesh?.dispose();
         dynamicTerrainComponent.physicsAggregateInitializing = false;
       }
@@ -162,9 +162,9 @@ export class DynamicTerrainColliderSystem extends IterativeSystem {
     // Create the physics aggregate for the new mesh
     new PhysicsAggregate(physicsMeshClone, PhysicsShapeType.MESH, { mass: 0 });
     const physicsBody = physicsMeshClone.physicsBody;
-    if (physicsBody) {
-      this._physicsViewer.showBody(physicsBody);
-    }
+    // if (physicsBody) {
+    // this._physicsViewer.showBody(physicsBody);
+    // }
     physicsMeshClone.setEnabled(false);
     let centerPosition = new Vector3(sumX / count, sumY / count, sumZ / count);
     centerPosition = Vector3.TransformCoordinates(centerPosition, worldMatrix);
