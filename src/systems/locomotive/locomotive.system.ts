@@ -5,9 +5,10 @@ import { InitializationStatus } from '../../utils/types';
 import { TrackComponent } from '../../components/track.component';
 import { Quaternion, Vector3 } from '@babylonjs/core';
 import { Direction, LocomotiveInputComponent } from '../../components/locomotive/locomotiveInput.component';
+import { scene } from '../../game';
 
 export const HEIGHT_ABOVE_TRACK = 1.5;
-const LEAD_TRUCK_Z_OFFSET = -5.325;
+const NUMBER_OF_DRIVER_ANIMATION_FRAMES = 150;
 
 @RegisterSystem()
 export class LocomotiveSystem extends IterativeSystem {
@@ -30,10 +31,14 @@ export class LocomotiveSystem extends IterativeSystem {
     if (locomotiveComponent.speed !== 0) {
       this.updatePositionOnTrack(locomotiveComponent, trackComponent, dt);
     }
+    if (locomotiveComponent.previousSpeed !== locomotiveComponent.speed) {
+      this.updateDriverAnimationSpeedRatio(locomotiveComponent);
+    }
   }
 
   private setSpeed(locomotiveComponent: LocomotiveComponent, locomotiveInputComponent: LocomotiveInputComponent, dt: number) {
     let speed = locomotiveComponent.speed;
+    locomotiveComponent.previousSpeed = speed;
     switch (locomotiveInputComponent.direction) {
       case Direction.Forward:
         speed = Math.min(speed + locomotiveComponent.acceleration * dt, locomotiveComponent.maxSpeed);
@@ -111,23 +116,39 @@ export class LocomotiveSystem extends IterativeSystem {
     // Normalize the angle difference to the range (-PI, PI]
     wheelAngleDifference = ((wheelAngleDifference + Math.PI) % (2 * Math.PI)) - Math.PI;
     const angleInDegrees = (relativeWheelRotation.y * 180) / Math.PI;
-    console.log('Angle in degrees: ', angleInDegrees);
-    console.log('Wheel angle difference: ', wheelAngleDifference);
-    console.log('Locomotive angle difference: ', locomotiveAngleDifference);
     const maxOffset = 0.5;
     const maxTurnAngle = 4.28;
 
     if (wheelAngleDifference > 0 || locomotiveAngleDifference > 0) {
-      console.log('Turning left');
       const scaledOffset = maxOffset * Math.min(angleInDegrees / maxTurnAngle, 1);
       frontWheelsMesh.position.x = -scaledOffset;
     } else if (wheelAngleDifference < 0 || locomotiveAngleDifference < 0) {
-      console.log('Turning right');
       const scaledOffset = -maxOffset * Math.min(angleInDegrees / -maxTurnAngle, 1);
       frontWheelsMesh.position.x = -scaledOffset;
     } else {
-      console.log('Straight');
       frontWheelsMesh.position.x = 0;
     }
+  }
+
+  private updateDriverAnimationSpeedRatio(locomotiveComponent: LocomotiveComponent) {
+    console.log('updateDriverAnimationSpeedRatio');
+    const driver = locomotiveComponent.driverMesh;
+    if (!driver) {
+      throw new Error('Driver mesh not found');
+    }
+    const armature = driver.getChildTransformNodes(true, (node) => node.name === 'Armature')[0];
+    if (!armature) {
+      throw new Error('Armature not found');
+    }
+
+    // Based on the speed of the locomotive, set the speed ratio of the driver animation
+    const speed = locomotiveComponent.speed;
+    const speedFactor = (speed * 5) / locomotiveComponent.maxSpeed;
+
+    const animationGroup = scene.getAnimationGroupByName('Armature|Armature|ArmatureAction.001');
+    if (!animationGroup) {
+      throw new Error('Driver animation group not found');
+    }
+    animationGroup.speedRatio = speedFactor;
   }
 }

@@ -44,5 +44,21 @@ export class LocomotiveInitSystem extends IterativeSystem {
       wheel.position = new Vector3(0, 0, -5.325);
       loc.frontWheelsMesh = wheel;
     });
+
+    // Import driver
+    // TODO: Rescale to 37.5 like the others, so don't have to set scale here
+    await SceneLoader.ImportMeshAsync(null, './assets/models/prr_d16/', 'driver50.glb').then((result) => {
+      const driver = result.meshes[0] as Mesh;
+      const armature = driver.getChildTransformNodes(true, (node) => node.name === 'Armature')[0];
+      if (!armature) {
+        throw new Error('Armature not found');
+      }
+      
+      driver.scaling = new Vector3(0.75, 0.75, 0.75);
+      driver.name = 'driver';
+      driver.parent = loc.bodyMesh;
+      driver.position = new Vector3(0, 0, 0);
+      loc.driverMesh = driver;
+    });
   }
 }
