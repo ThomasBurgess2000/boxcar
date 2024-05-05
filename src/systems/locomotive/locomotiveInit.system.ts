@@ -1,7 +1,7 @@
 import { Entity, IterativeSystem } from 'tick-knock';
 import { LocomotiveComponent } from '../../components/locomotive/locomotive.component';
 import { InitializationStatus } from '../../utils/types';
-import { ArcRotateCamera, Color3, Mesh, MeshBuilder, SceneLoader, StandardMaterial, Vector3 } from '@babylonjs/core';
+import { ArcRotateCamera, Color3, Mesh, SceneLoader, StandardMaterial, Vector3 } from '@babylonjs/core';
 import { RegisterSystem } from '../../startup/systemRegistration';
 import { scene } from '../../game';
 
@@ -25,15 +25,21 @@ export class LocomotiveInitSystem extends IterativeSystem {
   }
 
   private async createMesh(loc: LocomotiveComponent) {
+
+    const material = new StandardMaterial('locomotive-material');
+    material.diffuseColor = new Color3(52/255, 52/255, 52/255);
+
     // const mesh = MeshBuilder.CreateBox('locomotive', { width: loc.width, depth: loc.depth, height: loc.height});
     await SceneLoader.ImportMeshAsync(null, './assets/models/prr_d16/', 'locomotive_final.glb').then((result) => {
       const mesh = result.meshes[0] as Mesh;
       mesh.name = 'locomotive';
       (scene.activeCamera as ArcRotateCamera).parent = mesh;
       (scene.activeCamera as ArcRotateCamera).target = new Vector3(0, 3, -9);
-      const material = new StandardMaterial('locomotive-material');
-      material.diffuseColor = new Color3(0.5, 0.5, 0.5);
+      
       mesh.material = material;
+      mesh.getChildMeshes().forEach((child) => {
+        child.material = material;
+      });
       loc.bodyMesh = mesh;
     });
 
@@ -44,6 +50,10 @@ export class LocomotiveInitSystem extends IterativeSystem {
       wheel.parent = loc.bodyMesh;
       wheel.position = new Vector3(0, 0, -5.325);
       loc.frontWheelsMesh = wheel;
+      wheel.material = material;
+      wheel.getChildMeshes().forEach((child) => {
+        child.material = material;
+      });
     });
 
     // Import driver
@@ -60,6 +70,16 @@ export class LocomotiveInitSystem extends IterativeSystem {
       driver.parent = loc.bodyMesh;
       driver.position = new Vector3(0, 0, 0);
       loc.driverMesh = driver;
+
+      const driverMaterial = new StandardMaterial('driver-material');
+      driverMaterial.diffuseColor = new Color3(63/255, 63/255, 63/255);
+      driver.material = driverMaterial;
+      driver.getChildMeshes().forEach((child) => {
+        child.material = driverMaterial;
+      });
     });
+
+    // const spotlight = new SpotLight('spotlight', new Vector3(0, 4, -7.4), new Vector3(0, 0, -1), Math.PI / 2, 2, scene);
+    // spotlight.parent = loc.bodyMesh;
   }
 }

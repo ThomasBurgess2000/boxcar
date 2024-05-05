@@ -31,12 +31,12 @@ You can always try the latest build here: https://thomasburgess2000.github.io/bo
 - [ ] make the trees generate/dispose as you move
 - [ ] Add walkable player using Havok physics
 - [ ] Dispose far away track
-- [ ] Add wheels to train
 - [ ] Be able to lower maxSubZ without terrain clipping through track and trees at wrong height (aspirational)
 - [ ] Make fog work with dynamic terrain shader
 - [ ] Make displacement/parallax occulusion map for terrain (does this require more detailed dynamic terrain?)
 - [ ] Get draco compressed glbs to load
 - [ ] figure out why startup is taking so long
+- [x] Add wheels to train
 - [x] Make chunked physics colliders for terrain (cannot be attached to terrain mesh directly otherwise it cannot move when the camera moves)
 - [x] Clean up game.ts
 - [x] Make larger map
