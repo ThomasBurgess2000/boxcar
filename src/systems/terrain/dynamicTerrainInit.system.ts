@@ -17,6 +17,12 @@ export class DynamicTerrainInitSystem extends IterativeSystem {
 
   protected async updateEntity(entity: Entity): Promise<void> {
     const dynamicTerrainComponent = entity.get(DynamicTerrainComponent)!;
+    // IN PROGRESS
+    if (scene.activeCamera && scene.activeCamera.globalPosition && scene.activeCamera.globalPosition.x > 1000 && !dynamicTerrainComponent.reconstructed) {
+      dynamicTerrainComponent.initializationStatus = InitializationStatus.NotInitialized;
+      console.log("making new terrain");
+      dynamicTerrainComponent.reconstructed = true;
+    }
     if (dynamicTerrainComponent.initializationStatus !== InitializationStatus.NotInitialized) {
       return;
     }
@@ -32,6 +38,7 @@ export class DynamicTerrainInitSystem extends IterativeSystem {
       dynamicTerrainComponent.elevationScale,
       dynamicTerrainComponent.flatPoints,
       20,
+      dynamicTerrainComponent.reconstructed ? 1000 : 0,
     );
 
     const mapParams = {
@@ -40,8 +47,12 @@ export class DynamicTerrainInitSystem extends IterativeSystem {
       mapSubZ: dynamicTerrainComponent.mapSubZ,
       terrainSub: MAX_VIEW_DISTANCE,
     };
-    const terrain = new DynamicTerrain('dynamicTerrain', mapParams, scene);
-    dynamicTerrainComponent.dynamicTerrain = terrain;
+    if (!dynamicTerrainComponent.dynamicTerrain) {
+      const terrain = new DynamicTerrain('dynamicTerrain', mapParams, scene);
+      dynamicTerrainComponent.dynamicTerrain = terrain;
+    } else {
+      dynamicTerrainComponent.dynamicTerrain.mapData = mapData;
+    }
 
     const noiseTexture = this.makeTexture(dynamicTerrainComponent, noise2D);
     const normalMap = new Texture('assets/textures/Stylized_Grass_002_normal.jpg', scene);
@@ -58,7 +69,10 @@ export class DynamicTerrainInitSystem extends IterativeSystem {
         return;
       }
       const offset = Vector3.Center(_activeCamera.position, _activeCamera.target);
-      terrain.shiftFromCamera = {
+      if (!dynamicTerrainComponent.dynamicTerrain) {
+        return;
+      }
+      dynamicTerrainComponent.dynamicTerrain.shiftFromCamera = {
         x: -offset._x,
         z: -offset._z,
       };
@@ -81,11 +95,12 @@ export class DynamicTerrainInitSystem extends IterativeSystem {
     elevationScale: number,
     trackPoints: Vector3[],
     flatRadius: number,
+    offset: number = 0,
   ): Float32Array {
     const mapData = new Float32Array(mapSubX * mapSubZ * 3);
     for (let l = 0; l < mapSubZ; l++) {
       for (let w = 0; w < mapSubX; w++) {
-        const x = (w - mapSubX * 0.5) * 2.0;
+        const x = (w - mapSubX * 0.5) * 2.0 + offset;
         const z = (l - mapSubZ * 0.5) * 2.0;
         let y = this.layeredNoise(x, z, noise2D, noiseScale, elevationScale);
         y *= (0.5 + y) * y * elevationScale;

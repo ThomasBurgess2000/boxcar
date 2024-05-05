@@ -9,9 +9,12 @@ export class LocomotiveComponent {
   public positionOnTrack: number = 0;
   public speed: number = 0;
   public previousSpeed: number = 0;
-  public acceleration: number = 5;
-  public deceleration: number = 10;
-  public maxSpeed: number = 26.8224;
+  // public acceleration: number = 5;
+  // public deceleration: number = 10;
+  public acceleration: number = 20;
+  public deceleration: number = 100;
+  // public maxSpeed: number = 26.8224;
+  public maxSpeed: number = 150;
   public width: number = 16.891;
   public depth: number = 3.2258;
   public height: number = 3.048;

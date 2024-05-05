@@ -15,5 +15,6 @@ export class DynamicTerrainComponent {
   public physicsMesh: Mesh | null = null;
   public physicsAggregateInitializing = false;
   public currentPhysicsCenter: Vector3 | null = null;
+  public reconstructed = false;
   constructor(public flatPoints: Vector3[] = []) {}
 }
