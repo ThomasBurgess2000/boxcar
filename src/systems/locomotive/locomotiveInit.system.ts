@@ -1,7 +1,7 @@
 import { Entity, IterativeSystem } from 'tick-knock';
 import { LocomotiveComponent } from '../../components/locomotive/locomotive.component';
 import { InitializationStatus } from '../../utils/types';
-import { ArcRotateCamera, Color3, Mesh, MeshBuilder, PointLight, SceneLoader, SpotLight, StandardMaterial, Vector3 } from '@babylonjs/core';
+import { ArcRotateCamera, Color3, Mesh, SceneLoader, StandardMaterial, Vector3 } from '@babylonjs/core';
 import { RegisterSystem } from '../../startup/systemRegistration';
 import { scene } from '../../game';
 

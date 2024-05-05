@@ -70,8 +70,7 @@ export async function startGame() {
   });
 
   // Track initialization might be moved to be part of the map system...dynamic terrain, trees, track, etc. are all interconected and depend on each other
-  // const trackSections = ['s', 'l', 's', 'r', 's', 's', 's', 's', 'r', 's', 'l', 'l', 's', 'r', 's', 'r', 's', 's', 'l', 's', 's', 's', 's', 's', 's', 's', 's', 's', 's'];
-  const trackSections = ['s', 's', 's', 's', 's', 's', 's', 's', 's', 's', 's', 's', 's', 's', 's', 's', 's', 's', 's', 's', 's', 's', 's', 's', 's', 's', 's', 's', 's', 's', 's', 's', 's', 's', 's', 's', 's', 's', 's', 's', 's', 's' ]
+  const trackSections = ['s', 'l', 's', 'r', 's', 's', 's', 's', 'r', 's', 'l', 'l', 's', 'r', 's', 'r', 's', 's', 'l', 's', 's', 's'];
   const trackComponent = createTrack(trackSections);
   while (trackComponent.initializationStatus !== InitializationStatus.Initialized) {
     await new Promise((resolve) => setTimeout(resolve, 100));
